@@ -24,3 +24,6 @@ backend/_*.py
 backend/_*.json
 backend/_*.png
 *.local
+
+# 기획 문서 원본 (로컬 보관, 저장소 제외)
+최종기획서_뚝딱.*
