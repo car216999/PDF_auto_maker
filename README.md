@@ -35,6 +35,14 @@
 >
 > *(스크린샷은 `backend/scripts/make_screenshots.py` 로 재생성 가능)*
 
+### 웹 UI — 업로드 → 컨셉 입력 → 미리보기
+
+| 1. 양식 업로드 | 2. 컨셉 입력 | 3. 미리보기·다운로드 |
+|:---:|:---:|:---:|
+| ![업로드](docs/screenshots/ui_1_upload.png) | ![컨셉 입력](docs/screenshots/ui_2_concept.png) | ![미리보기](docs/screenshots/ui_3_preview.png) |
+
+> 미리보기에서 각 값은 **`근거`**(사내 문서에서 찾음) / **`추론`**(모델이 계산·추정)으로 구분 표시되어, 사용자가 신뢰도를 한눈에 보고 수정할 수 있다 — 환각 검수가 UI에 녹아든 부분.
+
 ## 빠른 시작 — Docker (권장)
 
 ```bash
