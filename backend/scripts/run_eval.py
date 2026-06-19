@@ -8,12 +8,13 @@ from pathlib import Path
 
 from app.eval.harness import EvalHarness
 from app.rag.pipeline import RAGPipeline
+from scripts.make_business_plan import build as build_business_plan
 from scripts.make_sample_form import build as build_sample
 from scripts.make_standard_quote import build as build_standard
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 BACKEND = Path(__file__).resolve().parent.parent
-DATASETS = ["quote_basic.json", "standard_quote.json"]
+DATASETS = ["quote_basic.json", "standard_quote.json", "business_plan.json"]
 
 LABELS = {
     "accuracy": "field-fill accuracy",
@@ -42,6 +43,7 @@ def print_summary(rep: dict) -> None:
 # 재현성: 양식·인덱스를 보장
 build_sample(ROOT / "data" / "forms" / "sample_quote.pdf")
 build_standard(ROOT / "data" / "forms" / "standard_quote.pdf")
+build_business_plan(ROOT / "data" / "forms" / "business_plan.pdf")
 indexed = RAGPipeline().index()
 print(f"[setup] indexed {indexed} knowledge chunks")
 

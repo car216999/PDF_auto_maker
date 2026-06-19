@@ -1,0 +1,20 @@
+{
+  "name": "business_plan",
+  "description": "사업계획서 신청서(12필드). 기획서(tooktak_plan)를 지식으로 채움. 자유서술 문단(사업개요·핵심기능·기술스택·추진일정·기대효과)과 해석 여지 있는 주관·멘토는 exact-match 채점 불가라 정확도 채점에서 제외; 결정적 필드만 채점하고 문단 품질은 근거율로 반영.",
+  "cases": [
+    {
+      "id": "bp_tooktak",
+      "form": "business_plan.pdf",
+      "concept": "뚝딱(TookTak) 팀의 오픈소스 LLM·RAG 기반 PDF 양식 자동 작성 시스템 지원사업 신청서를 작성한다. 신청일자는 2026-06-19. 각 항목은 기획서 내용에 근거해 간결하게.",
+      "manual_baseline_sec": 1800,
+      "gold": {
+        "project_title": "오픈소스 LLM·RAG 기반 PDF 양식 자동 작성 시스템",
+        "team_name": "뚝딱 (TookTak)",
+        "team_leader": "김세경",
+        "team_members": "채요한, 박은선, 이권형",
+        "category": "기업과제 (PBL)",
+        "apply_date": "2026-06-19"
+      }
+    }
+  ]
+}
