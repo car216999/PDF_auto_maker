@@ -1,0 +1,119 @@
+-- =====================================================
+-- 뚝딱(TookTak) — PDF 양식 자동 작성 시스템 ERD
+-- MySQL DDL (aquerytool DDL Import 용)
+--
+-- 현재 MVP는 인메모리 + ChromaDB로 동작하나,
+-- 기획서 4장 설계 산출물(E-R 다이어그램·테이블 명세서)에 맞춰
+-- 시스템 파이프라인(양식→필드→지식→생성→채운값→근거)을 관계형으로 모델링함.
+--
+-- 관계 요약:
+--   users 1:N forms 1:N form_fields                 (양식 → 추출 필드)
+--   forms 1:N documents 1:N filled_fields           (양식 → 생성 문서 → 채운 값)
+--   knowledge_documents 1:N knowledge_chunks         (원본 → 청크)
+--   filled_fields N:M knowledge_chunks (document_evidence)  (채운 값 ↔ 근거)
+-- =====================================================
+
+-- 1) 사용자
+CREATE TABLE users (
+    user_id     INT AUTO_INCREMENT PRIMARY KEY COMMENT '사용자 ID',
+    email       VARCHAR(255) NOT NULL UNIQUE COMMENT '이메일',
+    name        VARCHAR(100) COMMENT '이름',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '가입일시'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='사용자';
+
+-- 2) 업로드된 빈 양식 (PDF 템플릿)
+CREATE TABLE forms (
+    form_id     VARCHAR(32) PRIMARY KEY COMMENT '양식 ID(UUID)',
+    user_id     INT COMMENT '업로드 사용자',
+    filename    VARCHAR(255) NOT NULL COMMENT '원본 파일명',
+    page_count  INT DEFAULT 1 COMMENT '페이지 수',
+    is_form     TINYINT(1) DEFAULT 1 COMMENT 'AcroForm 여부',
+    src_path    VARCHAR(500) COMMENT '원본 저장 경로',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '업로드 일시',
+    FOREIGN KEY (user_id) REFERENCES users (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='빈 양식';
+
+-- 3) 양식에서 추출한 폼필드 (파싱 산출물)
+CREATE TABLE form_fields (
+    field_id    INT AUTO_INCREMENT PRIMARY KEY COMMENT '필드 ID',
+    form_id     VARCHAR(32) NOT NULL COMMENT '양식 ID',
+    name        VARCHAR(100) NOT NULL COMMENT 'AcroForm 필드명',
+    label       VARCHAR(255) COMMENT '추론된 라벨',
+    field_type  VARCHAR(20) DEFAULT 'text' COMMENT 'text/checkbox/radio/choice',
+    page        INT DEFAULT 0 COMMENT '페이지 인덱스',
+    bbox_x0     DECIMAL(8,2) COMMENT '좌표 x0',
+    bbox_y0     DECIMAL(8,2) COMMENT '좌표 y0',
+    bbox_x1     DECIMAL(8,2) COMMENT '좌표 x1',
+    bbox_y1     DECIMAL(8,2) COMMENT '좌표 y1',
+    required    TINYINT(1) DEFAULT 0 COMMENT '필수 여부',
+    max_length  INT COMMENT '최대 길이',
+    UNIQUE KEY uq_form_field (form_id, name),
+    FOREIGN KEY (form_id) REFERENCES forms (form_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='폼필드';
+
+-- 4) RAG 지식 원본 문서
+CREATE TABLE knowledge_documents (
+    doc_id      INT AUTO_INCREMENT PRIMARY KEY COMMENT '문서 ID',
+    source      VARCHAR(255) NOT NULL COMMENT '출처 파일명',
+    title       VARCHAR(255) COMMENT '제목',
+    char_count  INT DEFAULT 0 COMMENT '글자 수',
+    indexed_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '인덱싱 일시'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지식 문서';
+
+-- 5) 지식 청크 (임베딩 벡터는 ChromaDB에 별도 저장)
+CREATE TABLE knowledge_chunks (
+    chunk_id    VARCHAR(32) PRIMARY KEY COMMENT '청크 ID(해시)',
+    doc_id      INT NOT NULL COMMENT '원본 문서 ID',
+    chunk_index INT NOT NULL COMMENT '청크 순번',
+    text        TEXT COMMENT '청크 본문',
+    char_count  INT DEFAULT 0 COMMENT '글자 수',
+    FOREIGN KEY (doc_id) REFERENCES knowledge_documents (doc_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='지식 청크';
+
+-- 6) 생성 작업 = 채운 문서
+CREATE TABLE documents (
+    document_id    INT AUTO_INCREMENT PRIMARY KEY COMMENT '문서(작업) ID',
+    form_id        VARCHAR(32) NOT NULL COMMENT '대상 양식',
+    user_id        INT COMMENT '요청 사용자',
+    concept        TEXT COMMENT '사용자 입력 컨셉',
+    model          VARCHAR(50) DEFAULT 'qwen3:8b' COMMENT '사용 LLM',
+    grounded_ratio DECIMAL(4,3) COMMENT '근거 일치율',
+    status         VARCHAR(20) DEFAULT 'generated' COMMENT 'generated/filled/downloaded',
+    output_path    VARCHAR(500) COMMENT '완성 PDF 경로',
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
+    FOREIGN KEY (form_id) REFERENCES forms (form_id),
+    FOREIGN KEY (user_id) REFERENCES users (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='생성 문서';
+
+-- 7) 문서별 채운 필드 값 (생성 산출물)
+CREATE TABLE filled_fields (
+    filled_id   INT AUTO_INCREMENT PRIMARY KEY COMMENT '채운값 ID',
+    document_id INT NOT NULL COMMENT '문서 ID',
+    field_name  VARCHAR(100) NOT NULL COMMENT '필드명',
+    value       TEXT COMMENT '채운 값',
+    grounded    TINYINT(1) DEFAULT 0 COMMENT '근거 존재 여부',
+    confidence  DECIMAL(4,3) COMMENT '신뢰도',
+    UNIQUE KEY uq_doc_field (document_id, field_name),
+    FOREIGN KEY (document_id) REFERENCES documents (document_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='채운 필드';
+
+-- 8) 채운 값 ↔ 근거 청크 (M:N 추적)
+CREATE TABLE document_evidence (
+    filled_id   INT NOT NULL COMMENT '채운값 ID',
+    chunk_id    VARCHAR(32) NOT NULL COMMENT '근거 청크 ID',
+    score       DECIMAL(5,4) COMMENT '유사도 점수',
+    PRIMARY KEY (filled_id, chunk_id),
+    FOREIGN KEY (filled_id) REFERENCES filled_fields (filled_id),
+    FOREIGN KEY (chunk_id) REFERENCES knowledge_chunks (chunk_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='근거 연결';
+
+-- 9) KPI 평가 결과
+CREATE TABLE eval_results (
+    eval_id        INT AUTO_INCREMENT PRIMARY KEY COMMENT '평가 ID',
+    dataset        VARCHAR(50) NOT NULL COMMENT '데이터셋명',
+    accuracy       DECIMAL(4,3) COMMENT '채움 정확도',
+    time_reduction DECIMAL(4,3) COMMENT '시간 단축률',
+    grounded_ratio DECIMAL(4,3) COMMENT '근거 일치율',
+    external_calls INT DEFAULT 0 COMMENT '외부 호출 수',
+    measured_at    DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '측정 일시'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='KPI 평가';
