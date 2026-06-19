@@ -1,0 +1,36 @@
+{
+  "name": "quote_basic",
+  "description": "견적서 양식 기본 평가셋. 정답은 사내 지식 문서(price_guide, company_profile)에 근거.",
+  "cases": [
+    {
+      "id": "cloud_2units",
+      "form": "sample_quote.pdf",
+      "concept": "주식회사 엑시오의 클라우드 서버 구축 견적. 단가 300만원, 수량 2대.",
+      "manual_baseline_sec": 300,
+      "gold": {
+        "company_name": "주식회사 엑시오",
+        "item": "클라우드 서버 구축",
+        "unit_price": "300만원",
+        "quantity": "2",
+        "supply_amount": "600만원",
+        "note": "부가세 별도",
+        "vat_included": "N"
+      }
+    },
+    {
+      "id": "consulting_1unit",
+      "form": "sample_quote.pdf",
+      "concept": "주식회사 엑시오의 온프레미스 LLM 도입 컨설팅 견적. 수량 1건.",
+      "manual_baseline_sec": 300,
+      "gold": {
+        "company_name": "주식회사 엑시오",
+        "item": "온프레미스 LLM 도입 컨설팅",
+        "unit_price": "500만원",
+        "quantity": "1",
+        "supply_amount": "500만원",
+        "note": "부가세 별도",
+        "vat_included": "N"
+      }
+    }
+  ]
+}

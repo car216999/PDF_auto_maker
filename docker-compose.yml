@@ -1,0 +1,66 @@
+# 뚝딱(TookTak) — 완전 로컬 스택. `docker compose up` 하나로 기동.
+#   ollama(LLM·임베딩) → ollama-init(모델 받기) → backend(API) → frontend(UI)
+# 외부 네트워크: 모델 다운로드 시점 외에는 0건 (서비스 간 내부 통신만).
+
+services:
+  # 1) 로컬 LLM·임베딩 서빙
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    # --- GPU 사용 시 주석 해제 (NVIDIA + container toolkit 필요) ---
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # 2) 모델 1회 다운로드 후 종료 (qwen3:8b + nomic-embed-text)
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:8b && ollama pull nomic-embed-text"]
+    restart: "no"
+
+  # 3) 백엔드 API (FastAPI)
+  backend:
+    build: ./backend
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      - TOOKTAK_OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - ./data:/data            # 지식 문서 + ChromaDB 인덱스 영속화
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # 4) 프론트엔드 (nginx 정적 서빙 + /api 프록시)
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+
+volumes:
+  ollama_models:

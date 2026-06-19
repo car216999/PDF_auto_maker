@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# 런타임·생성 데이터 (스크립트로 재생성)
+data/uploads/*
+data/outputs/*
+data/chroma/*
+data/forms/*.pdf
+!**/.gitkeep
+
+# 평가 산출물 (재생성)
+backend/eval/report.json
+
+# 임시·스크래치 파일
+backend/_*.py
+backend/_*.json
+backend/_*.png
+*.local

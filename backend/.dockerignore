@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+data
+eval/report.json
+_*.py
+_*.json
+_*.png

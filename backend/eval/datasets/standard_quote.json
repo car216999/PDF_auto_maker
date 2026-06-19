@@ -1,0 +1,39 @@
+{
+  "name": "standard_quote",
+  "description": "표준 견적서(27필드). 정답은 사내 문서(공급자 정보·단가) + 컨셉 입력에 근거. 견적번호·유효기간은 정답 불명이라 채점 제외, 빈 행(2·3행)은 공백 기대.",
+  "cases": [
+    {
+      "id": "std_cloud_2units",
+      "form": "standard_quote.pdf",
+      "concept": "주식회사 엑시오가 ABC상사에 보내는 클라우드 서버 구축 견적. 품목 1건: 클라우드 서버 구축, 수량 2대, 단가 300만원. 견적일자 2026-06-19.",
+      "manual_baseline_sec": 600,
+      "gold": {
+        "client_name": "ABC상사",
+        "quote_date": "2026-06-19",
+        "sup_reg_no": "123-45-67890",
+        "sup_company": "주식회사 엑시오",
+        "sup_ceo": "김엑시오",
+        "sup_addr": "서울특별시 강남구 테헤란로 123",
+        "sup_biz_type": "정보통신업",
+        "sup_biz_item": "소프트웨어 개발 및 공급",
+        "sup_tel": "02-1234-5678",
+        "item1_name": "클라우드 서버 구축",
+        "item1_qty": "2",
+        "item1_price": "300만원",
+        "item1_amount": "600만원",
+        "item2_name": "",
+        "item2_qty": "",
+        "item2_price": "",
+        "item2_amount": "",
+        "item3_name": "",
+        "item3_qty": "",
+        "item3_price": "",
+        "item3_amount": "",
+        "total_supply": "600만원",
+        "total_tax": "60만원",
+        "total_amount": "660만원",
+        "note": "부가세 별도"
+      }
+    }
+  ]
+}
