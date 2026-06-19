@@ -47,4 +47,24 @@ filled = ROOT / "data" / "outputs" / "screenshot_filled.pdf"
 PDFInjector(flatten=True).fill(src, result.fields, filled)
 render(filled, SHOTS / "02_filled_result.png")
 
-print(f"근거율 {result.grounded_ratio:.0%} · 스크린샷 2장 생성: {SHOTS}")
+# 3) 기획서 → 사업계획서 신청서 자동 작성 (다른 문서 유형)
+from scripts.make_business_plan import build as build_bp
+
+bp_src = build_bp(ROOT / "data" / "forms" / "business_plan.pdf")
+bp_schema = PDFParser().parse(bp_src, "bp")
+bp_concept = (
+    "뚝딱(TookTak) 팀의 오픈소스 LLM·RAG 기반 PDF 양식 자동 작성 시스템 지원사업 신청서를 작성한다. "
+    "신청일자는 2026-06-19. 각 항목은 기획서 내용에 근거해 간결하게."
+)
+bp_result = FieldGenerator(rag).generate(bp_schema, bp_concept)
+bp_filled = ROOT / "data" / "outputs" / "screenshot_bp.pdf"
+PDFInjector(flatten=True).fill(bp_src, bp_result.fields, bp_filled)
+doc = fitz.open(bp_filled)
+doc[0].get_pixmap(dpi=DPI, clip=fitz.Rect(35, 45, 560, 610)).save(
+    str(SHOTS / "03_business_plan.png"))
+doc.close()
+
+print(
+    f"견적서 근거율 {result.grounded_ratio:.0%} · "
+    f"사업계획서 근거율 {bp_result.grounded_ratio:.0%} · 스크린샷 3장 생성: {SHOTS}"
+)

@@ -78,6 +78,24 @@ def test_long_value_shrinks_and_renders(tmp_path):
     assert "강남구" in text and "테헤란로" in text
 
 
+def test_multiline_paragraph_wraps_and_renders(tmp_path):
+    """멀티라인 박스(문단)는 줄바꿈되어 렌더링된다 — 사업계획서 등."""
+    from scripts.make_business_plan import build as build_bp
+
+    src = build_bp(tmp_path / "bp.pdf")
+    para = (
+        "빈 양식과 컨셉 입력만으로 완성 문서를 생성하는 지능형 문서 작성 "
+        "어시스턴트를 개발하여 정형 문서 작성 생산성을 높인다."
+    )
+    out = PDFInjector(flatten=True).fill(
+        src, [FilledField(name="summary", value=para)], tmp_path / "out.pdf"
+    )
+    doc = fitz.open(out)
+    text = "".join(p.get_text() for p in doc)
+    doc.close()
+    assert "지능형" in text and "어시스턴트" in text  # 줄바꿈돼도 내용 보존
+
+
 def test_unknown_fields_ignored(tmp_path):
     src = build(tmp_path / "q.pdf")
     out = PDFInjector().fill(

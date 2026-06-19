@@ -83,13 +83,34 @@ class PDFInjector:
                              fontfile=self.fontfile, fontsize=size)
             return
 
+        # 키 큰 필드(멀티라인 문단)는 줄바꿈되는 textbox 로 렌더링
+        if (rect.y1 - rect.y0) > 34:
+            self._draw_paragraph(page, rect, text)
+            return
+
+        # 단일행: 폭에 맞게 글자 크기 자동 축소
         box_w = max(rect.x1 - rect.x0 - 4, 1.0)
-        # 대략 폭 추정: 한글 ~1.0em, 영숫자·공백 ~0.55em
-        units = sum(1.0 if ord(c) > 0x1100 else 0.55 for c in text) or 1.0
+        # 내장 CJK 폰트는 영문도 전각으로 그리므로 모든 글자를 ~1em 으로 보수 추정
+        units = float(max(len(text), 1))
         size = max(6.0, min(float(self.font_size), box_w / units))
         baseline = rect.y1 - max(4.0, (rect.y1 - rect.y0 - size) / 2)
         page.insert_text((rect.x0 + 2, baseline), text, fontname=self.fontname,
                          fontfile=self.fontfile, fontsize=size)
+
+    def _draw_paragraph(self, page, rect: fitz.Rect, text: str) -> None:
+        """멀티라인 박스: 박스 용량에 맞게 글자 크기를 미리 추정해 한 번에 그린다."""
+        box = fitz.Rect(rect.x0 + 3, rect.y0 + 2, rect.x1 - 3, rect.y1 - 2)
+        box_w, box_h = box.width, box.height
+        n = max(len(text), 1)
+        size = float(self.font_size)
+        while size > 6:
+            chars_per_line = max(box_w / (size * 0.95), 1)  # 한글 기준 보수적
+            lines = box_h / (size * 1.3)
+            if chars_per_line * lines >= n * 1.15:  # 15% 여유
+                break
+            size -= 0.5
+        page.insert_textbox(box, text, fontname=self.fontname, fontfile=self.fontfile,
+                            fontsize=size, align=fitz.TEXT_ALIGN_LEFT)
 
     @staticmethod
     def _set_widget_value(widget, val: str, is_checkbox: bool) -> None:
