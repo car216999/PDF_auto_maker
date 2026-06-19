@@ -1,5 +1,16 @@
 # 뚝딱 (TookTak)
 
+[![GitHub](https://img.shields.io/badge/GitHub-PDF__auto__maker-181717?logo=github&logoColor=white)](https://github.com/car216999/PDF_auto_maker)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Ollama](https://img.shields.io/badge/Ollama-Qwen3_8B-000000?logo=ollama&logoColor=white)](https://ollama.com/)
+[![ChromaDB](https://img.shields.io/badge/Vector_DB-ChromaDB-FF6F61)](https://www.trychroma.com/)
+[![Tests](https://img.shields.io/badge/tests-37_passing-success)](backend/tests)
+[![External calls](https://img.shields.io/badge/외부_호출-0건-brightgreen)](#)
+
+> 저장소: **https://github.com/car216999/PDF_auto_maker**
+
 오픈소스 LLM·RAG 기반 **PDF 양식 자동 작성 시스템**. 빈 양식 + 컨셉 입력만으로 완성 문서를 생성한다.
 **외부 API 호출 0건 — 완전 로컬.** (Qwen3 8B · nomic-embed-text · PyMuPDF · ChromaDB)
 
@@ -54,7 +65,7 @@ tooktak/
 │  │  ├─ injection/  좌표 한글 주입·평탄화
 │  │  └─ eval/       KPI 측정 하네스
 │  ├─ scripts/       양식 생성·인덱싱·평가 실행
-│  └─ tests/         31개 (오프라인 빠른 검증)
+│  └─ tests/         37개 (오프라인 빠른 검증)
 ├─ frontend/         React + Vite 대시보드
 ├─ data/             knowledge(지식) · forms(양식) · chroma(인덱스)
 └─ docker-compose.yml
