@@ -27,3 +27,8 @@ backend/_*.png
 
 # 기획 문서 원본 (로컬 보관, 저장소 제외)
 최종기획서_뚝딱.*
+기획서_템플릿.*
+
+# 임시 렌더링 환경 (mermaid/playwright)
+.mmd-tmp/
+.shots-tmp/
