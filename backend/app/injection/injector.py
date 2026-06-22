@@ -98,19 +98,24 @@ class PDFInjector:
                          fontfile=self.fontfile, fontsize=size)
 
     def _draw_paragraph(self, page, rect: fitz.Rect, text: str) -> None:
-        """멀티라인 박스: 박스 용량에 맞게 글자 크기를 미리 추정해 한 번에 그린다."""
+        """멀티라인 박스: 글자 크기를 줄여가며 박스에 맞게 한 번에 그린다.
+
+        insert_textbox 는 오버플로우 시 음수를 반환하고 '아무것도 그리지 않으므로'
+        반환값이 0 이상이 될 때까지 폰트를 줄이는 재시도가 안전하다(겹침 없음).
+        """
         box = fitz.Rect(rect.x0 + 3, rect.y0 + 2, rect.x1 - 3, rect.y1 - 2)
-        box_w, box_h = box.width, box.height
-        n = max(len(text), 1)
         size = float(self.font_size)
-        while size > 6:
-            chars_per_line = max(box_w / (size * 0.95), 1)  # 한글 기준 보수적
-            lines = box_h / (size * 1.3)
-            if chars_per_line * lines >= n * 1.15:  # 15% 여유
-                break
+        while size >= 5.0:
+            rc = page.insert_textbox(
+                box, text, fontname=self.fontname, fontfile=self.fontfile,
+                fontsize=size, align=fitz.TEXT_ALIGN_LEFT,
+            )
+            if rc >= 0:  # 다 들어감
+                return
             size -= 0.5
+        # 최소 크기로도 넘치면 그 크기로 그림(드물게 일부 잘릴 수 있음)
         page.insert_textbox(box, text, fontname=self.fontname, fontfile=self.fontfile,
-                            fontsize=size, align=fitz.TEXT_ALIGN_LEFT)
+                            fontsize=5.0, align=fitz.TEXT_ALIGN_LEFT)
 
     @staticmethod
     def _set_widget_value(widget, val: str, is_checkbox: bool) -> None:

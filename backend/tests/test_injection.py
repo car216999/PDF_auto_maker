@@ -79,13 +79,18 @@ def test_long_value_shrinks_and_renders(tmp_path):
 
 
 def test_multiline_paragraph_wraps_and_renders(tmp_path):
-    """멀티라인 박스(문단)는 줄바꿈되어 렌더링된다 — 사업계획서 등."""
+    """긴 멀티라인 문단도 폰트 자동 축소로 박스에 들어가 렌더링된다.
+
+    insert_textbox 는 오버플로우 시 아무것도 안 그리므로, 기본 폰트로는 넘치는
+    긴 문단(아래 ~200자)이 '사라지지 않고' 축소되어 보이는지 검증한다.
+    """
     from scripts.make_business_plan import build as build_bp
 
     src = build_bp(tmp_path / "bp.pdf")
     para = (
-        "빈 양식과 컨셉 입력만으로 완성 문서를 생성하는 지능형 문서 작성 "
-        "어시스턴트를 개발하여 정형 문서 작성 생산성을 높인다."
+        "국내 749개 기업 조사 결과 절반 이상이 생성형 AI를 활용 중이며, 규제 산업에서는 "
+        "온프레미스 LLM 도입이 확대되고 있다. 외부 API 의존을 제거하고 사내 데이터를 기반으로 한 "
+        "RAG 시스템으로 데이터 주권을 확보하면서 정형 문서 작성 생산성을 높이는 것을 목표로 한다."
     )
     out = PDFInjector(flatten=True).fill(
         src, [FilledField(name="summary", value=para)], tmp_path / "out.pdf"
@@ -93,7 +98,8 @@ def test_multiline_paragraph_wraps_and_renders(tmp_path):
     doc = fitz.open(out)
     text = "".join(p.get_text() for p in doc)
     doc.close()
-    assert "지능형" in text and "어시스턴트" in text  # 줄바꿈돼도 내용 보존
+    # 기본 폰트로는 넘치는 길이지만 축소되어 핵심 내용이 보존됨
+    assert "온프레미스" in text and "데이터 주권" in text and "생산성" in text
 
 
 def test_unknown_fields_ignored(tmp_path):
