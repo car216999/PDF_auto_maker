@@ -116,6 +116,22 @@ cd backend && uv run python -m scripts.run_eval
 
 > ¹ 표준 견적서 근거율 88%는 자동 계산값(부가세·합계) 2개 때문 — 값은 정확하나 strict 근거 매칭에서 제외됨. 정직하게 측정값 그대로 보고한다.
 
+## 문서
+
+**설계**
+- [ERD DDL](docs/erd.txt) — aquerytool 임포트용 9개 테이블 스키마
+- [테이블 명세서](docs/테이블명세서.md) — 컬럼 명세 + 관계 요약
+
+**발표**
+- [발표 정리](docs/발표정리.md) — 슬라이드 구성 · Q&A · 핵심 숫자
+- [발표 대본](docs/발표대본.md) — 슬라이드별 대사 · 데모 내레이션
+
+**모듈·운영**
+- [백엔드 README](backend/README.md) — 구조 · 실행 · API
+- [프론트엔드 README](frontend/README.md) — UI 흐름 · 실행
+- [KPI 평가 하네스](backend/eval/README.md) — 측정 방법 · 데이터셋
+- [월요일 교체 가이드](docs/월요일_교체가이드.md) — 기획서 지식 교체 절차
+
 ## 팀
 
 뚝딱(TookTak) — 김세경(총괄·프론트) · 채요한(파싱) · 박은선(RAG) · 이권형(생성·백엔드)
