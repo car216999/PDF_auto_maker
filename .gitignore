@@ -30,6 +30,7 @@ backend/_*.png
 /기획서_템플릿.*
 /요구사항정의서_*
 /테이블 명세서*
+/WBS*
 
 # 임시 렌더링 환경 (mermaid/playwright)
 .mmd-tmp/
