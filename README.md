@@ -119,6 +119,7 @@ cd backend && uv run python -m scripts.run_eval
 ## 문서
 
 **설계**
+- [요구사항 정의서](docs/요구사항정의서.md) — 기능·비기능 요구사항 · 제약 · 우선순위
 - [시스템 구성도](docs/시스템구성도.md) — 계층 아키텍처 · 처리 흐름 · 배포 구성 (Mermaid)
 - [유스케이스 다이어그램](docs/유스케이스.md) — 액터 · 유스케이스 · 관계
 - [ERD DDL](docs/erd.txt) — aquerytool 임포트용 9개 테이블 스키마
