@@ -1,0 +1,16 @@
+flowchart TB
+    subgraph compose["docker compose up"]
+        direction TB
+        O["ollama<br/>(LLM·임베딩 서빙)"]
+        OI["ollama-init<br/>(모델 1회 다운로드)"]
+        BK["backend<br/>(FastAPI :8000)"]
+        FR["frontend<br/>(nginx :5173 → /api 프록시)"]
+    end
+    VOL[("ollama_models 볼륨")]
+    DV[("./data 마운트<br/>지식·인덱스 영속화")]
+
+    O -.->|"healthy"| OI
+    OI -.->|"완료"| BK
+    BK -.->|"healthy"| FR
+    O --- VOL
+    BK --- DV

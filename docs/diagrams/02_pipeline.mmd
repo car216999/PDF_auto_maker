@@ -1,0 +1,9 @@
+flowchart LR
+    A["① 빈 양식<br/>업로드"] --> B["② PDF 파싱<br/>필드·좌표 추출"]
+    B --> C["③ RAG 검색<br/>사내 문서 근거"]
+    C --> D["④ LLM 생성<br/>필드별 값 + 근거판정"]
+    D --> E["⑤ 좌표 한글 주입<br/>평탄화"]
+    E --> F["⑥ 미리보기·다운로드<br/>근거/추론 표시"]
+
+    style A fill:#eef2fb,stroke:#1f3a5f
+    style F fill:#e7f6ec,stroke:#1a8a4a

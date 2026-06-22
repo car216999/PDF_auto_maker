@@ -1,0 +1,38 @@
+flowchart TB
+    U["사용자 (브라우저)"]
+
+    subgraph FE["프론트엔드 · React/Vite :5173"]
+        UI["업로드 → 컨셉 입력 → 미리보기 → 다운로드"]
+    end
+
+    subgraph BE["백엔드 · FastAPI :8000"]
+        API["REST API"]
+        ORC["Orchestrator (파이프라인 조율)"]
+        P["parsing · PyMuPDF<br/>폼필드·좌표 추출"]
+        R["rag · 청킹·임베딩·검색"]
+        G["generation · 필드값 생성"]
+        I["injection · 좌표 한글 주입·평탄화"]
+    end
+
+    subgraph LOCAL["로컬 추론 · Ollama :11434"]
+        LLM["Qwen3 8B (생성)"]
+        EMB["nomic-embed-text (임베딩)"]
+    end
+
+    subgraph DATA["데이터 (로컬 디스크)"]
+        CH[("ChromaDB 벡터 인덱스")]
+        FS[("양식·지식·완성 PDF")]
+    end
+
+    U --> UI
+    UI -->|"HTTP /api"| API
+    API --> ORC
+    ORC --> P
+    ORC --> R
+    ORC --> G
+    ORC --> I
+    R -->|"질의 임베딩"| EMB
+    R -->|"top-k 검색"| CH
+    G -->|"근거 프롬프트"| LLM
+    P -->|"원본 PDF"| FS
+    I -->|"완성 PDF"| FS
