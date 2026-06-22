@@ -32,6 +32,7 @@ backend/_*.png
 /테이블 명세서*
 /WBS*
 /빅데이터분석정의서_*
+/데이터베이스요구사항분석서_*
 
 # 임시 렌더링 환경 (mermaid/playwright)
 .mmd-tmp/
