@@ -1,0 +1,62 @@
+erDiagram
+    users ||--o{ forms : "업로드"
+    users ||--o{ documents : "요청"
+    forms ||--o{ form_fields : "추출"
+    forms ||--o{ documents : "생성"
+    documents ||--o{ filled_fields : "포함"
+    knowledge_documents ||--o{ knowledge_chunks : "청킹"
+    filled_fields ||--o{ document_evidence : "근거"
+    knowledge_chunks ||--o{ document_evidence : "근거"
+
+    users {
+        int user_id PK
+        varchar email
+        varchar name
+    }
+    forms {
+        varchar form_id PK
+        int user_id FK
+        varchar filename
+        int page_count
+    }
+    form_fields {
+        int field_id PK
+        varchar form_id FK
+        varchar name
+        varchar label
+        varchar field_type
+    }
+    knowledge_documents {
+        int doc_id PK
+        varchar source
+        int char_count
+    }
+    knowledge_chunks {
+        varchar chunk_id PK
+        int doc_id FK
+        text text
+    }
+    documents {
+        int document_id PK
+        varchar form_id FK
+        int user_id FK
+        text concept
+        decimal grounded_ratio
+    }
+    filled_fields {
+        int filled_id PK
+        int document_id FK
+        varchar field_name
+        text value
+        bool grounded
+    }
+    document_evidence {
+        int filled_id PK "FK to filled_fields"
+        varchar chunk_id PK "FK to knowledge_chunks"
+        decimal score
+    }
+    eval_results {
+        int eval_id PK
+        varchar dataset
+        decimal accuracy
+    }
