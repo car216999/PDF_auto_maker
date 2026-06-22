@@ -1,0 +1,33 @@
+flowchart LR
+    user(("사용자<br/>(문서 작성자)"))
+    admin(("운영자<br/>(지식·평가 관리)"))
+
+    subgraph SYS["뚝딱 (TookTak) 시스템"]
+        UC1(["양식 업로드"])
+        UC2(["컨셉 입력"])
+        UC3(["문서 자동 생성"])
+        UC4(["미리보기·근거 검수"])
+        UC5(["값 직접 수정"])
+        UC6(["완성 PDF 다운로드"])
+        UC7(["지식 문서 인덱싱"])
+        UC8(["KPI 평가 실행"])
+        UCa(["RAG 근거 검색"])
+        UCb(["LLM 값 생성"])
+        UCc(["좌표 한글 주입"])
+    end
+
+    user --> UC1
+    user --> UC2
+    user --> UC3
+    user --> UC4
+    user --> UC6
+    admin --> UC7
+    admin --> UC8
+
+    UC3 -.->|"«include»"| UCa
+    UC3 -.->|"«include»"| UCb
+    UC6 -.->|"«include»"| UCc
+    UC4 -.->|"«extend»"| UC5
+
+    classDef actor fill:#fff3cd,stroke:#b5740a,stroke-width:2px;
+    class user,admin actor;
