@@ -37,6 +37,20 @@ _PLACEHOLDER_WORDS = {
 }
 
 
+_SENT_ENDERS = ("니다", "합니다", "됩니다", "입니다", "하여야", "하여", "한다.", "된다.",
+                "습니다", "이다.", "있다.", "없다.")
+
+
+def _is_prose(text: str) -> bool:
+    """약관·안내 등 '문장형' 블록 — 폼 라벨과 구분(종결어미·마침표·단어수)."""
+    t = text.strip()
+    if len(t) < 80:
+        return False
+    enders = sum(t.count(e) for e in _SENT_ENDERS)
+    periods = t.count(". ") + t.count(".\n")
+    return enders >= 1 or periods >= 2 or len(t.split()) >= 16
+
+
 def _is_filler(s: str) -> bool:
     """값칸 placeholder(점선·언더바·U+FDxx, Word 안내문) — 실제 내용 아님."""
     s = s.strip()
@@ -165,6 +179,9 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
         left_zone = page.rect.width * 0.4
         hlines = _horizontal_lines(page)
         words = page.get_text("words")
+        # 약관·안내 등 문장형 블록 → 그 안의 텍스트는 필드로 잡지 않음(노이즈 제거)
+        prose = [tuple(b[:4]) for b in page.get_text("blocks")
+                 if isinstance(b[4], str) and _is_prose(b[4])]
 
         # 1) 표 칸 채우기 (라벨 칸 + 값 칸)
         tfields, occupied = _table_fields(page, pno, len(fields))
@@ -200,6 +217,11 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
 
         for ws in line_words.values():
             ws.sort(key=lambda w: w[0])
+
+            # 긴 문단(약관 등) 안의 줄은 건너뜀
+            _ly = (min(w[1] for w in ws) + max(w[3] for w in ws)) / 2
+            if _inside(prose, ws[0][0] + 1, _ly):
+                continue
 
             # 드롭다운: 줄 전체가 안내문(placeholder)이면 라벨 없는 선택 슬롯
             if all(_is_filler(w[4]) for w in ws) and "".join(w[4] for w in ws).strip():
