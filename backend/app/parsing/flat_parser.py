@@ -199,25 +199,36 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
         for ws in line_words.values():
             ws.sort(key=lambda w: w[0])
 
-            # 콜론 인라인: 한 줄 안 '라벨 : ___' (표 밖, 이중언어 긴 라벨 허용)
-            if ws[0][0] <= left_zone and any(":" in w[4] or "：" in w[4] for w in ws):
-                cw = next(w for w in ws if ":" in w[4] or "：" in w[4])
-                before = [w for w in ws if w[2] <= cw[2]]
-                clabel = _clean(re.split(r"[:：]", " ".join(w[4] for w in before))[0])
-                ly0 = min(w[1] for w in before)
-                ly1 = max(w[3] for w in before)
-                after = [w for w in ws if w[0] > cw[2] + 1 and not _is_filler(w[4])]
-                sx1 = (after[0][0] - 4) if after else right
-                if (2 <= len(clabel) <= 40 and sx1 - cw[2] >= 40
-                        and not re.fullmatch(r"[\d\s.,\-/:()]+", clabel)
-                        and not _inside(occupied, ws[0][0] + 1, (ly0 + ly1) / 2)):
-                    key = f"{pno}:{round(ly0)}:{clabel}"
-                    if key not in seen:
-                        seen.add(key)
-                        fields.append(FormField(
-                            name=f"flat_{pno}_{len(fields)}", label=clabel,
-                            field_type=FieldType.TEXT, page=pno,
-                            bbox=BBox(x0=cw[2] + 4, y0=ly0, x1=sx1, y1=ly1)))
+            # 콜론 인라인: 한 줄 안 '라벨 : ___' 들 (좌/우 컬럼·여러 개 모두)
+            colon_ws = [w for w in ws if ":" in w[4] or "：" in w[4]]
+            if colon_ws:
+                made = False
+                prev_x = ws[0][0] - 1
+                for cw in colon_ws:
+                    cx = cw[2]
+                    # 라벨 = 직전 콜론~이 콜론 사이의 non-filler 단어 (붙은 콜론은 분리)
+                    seg = [w for w in ws if prev_x < w[0] <= cx and not _is_filler(w[4])]
+                    # 값칸 끝 = 이 콜론 뒤 첫 실제 단어(=다음 라벨) 시작, 없으면 우측 여백
+                    after = [w for w in ws if w[0] > cx + 1 and not _is_filler(w[4])]
+                    sx1 = (after[0][0] - 4) if after else right
+                    prev_x = cx
+                    if not seg:
+                        continue
+                    clabel = _clean(re.split(r"[:：]", " ".join(w[4] for w in seg))[0])
+                    ly0 = min(w[1] for w in seg)
+                    ly1 = max(w[3] for w in seg)
+                    if (1 <= len(clabel) <= 40 and sx1 - cx >= 40
+                            and not re.fullmatch(r"[\d\s.,\-/:()]+", clabel)
+                            and not _inside(occupied, seg[0][0] + 1, (ly0 + ly1) / 2)):
+                        key = f"{pno}:{round(ly0)}:{clabel}"
+                        if key not in seen:
+                            seen.add(key)
+                            fields.append(FormField(
+                                name=f"flat_{pno}_{len(fields)}", label=clabel,
+                                field_type=FieldType.TEXT, page=pno,
+                                bbox=BBox(x0=cx + 4, y0=ly0, x1=sx1, y1=ly1)))
+                            made = True
+                if made:
                     continue
 
             cluster = [ws[0]]
