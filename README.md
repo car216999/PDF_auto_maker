@@ -1,4 +1,8 @@
-# 뚝딱 (TookTak)
+<p align="center">
+  <img src="frontend/public/logo.png" alt="TookTak 로고" width="320" />
+</p>
+
+<h1 align="center">뚝딱 (TookTak)</h1>
 
 [![GitHub](https://img.shields.io/badge/GitHub-PDF__auto__maker-181717?logo=github&logoColor=white)](https://github.com/car216999/PDF_auto_maker)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -6,7 +10,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Ollama](https://img.shields.io/badge/Ollama-Qwen3_8B-000000?logo=ollama&logoColor=white)](https://ollama.com/)
 [![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-FF6F61)](https://qdrant.tech/)
-[![Tests](https://img.shields.io/badge/tests-37_passing-success)](backend/tests)
+[![Tests](https://img.shields.io/badge/tests-43_passing-success)](backend/tests)
 [![External calls](https://img.shields.io/badge/외부_호출-0건-brightgreen)](#)
 
 > 저장소: **https://github.com/car216999/PDF_auto_maker**
