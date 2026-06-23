@@ -18,19 +18,37 @@ from app.schemas.generation import FilledField
 # 체크박스를 '켬'으로 해석할 값
 _TRUTHY = {"y", "yes", "true", "1", "예", "o", "on", "check", "checked", "v", "✓"}
 
+# 한글 TTF 후보 (있으면 우선 사용, 없으면 내장 'korea' 폴백)
+_KOREAN_TTF_CANDIDATES = [
+    r"C:\Windows\Fonts\malgun.ttf",                              # 맑은고딕 (Windows)
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",          # 나눔고딕 (Linux)
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",   # Noto CJK
+]
+
+
+def _find_korean_ttf() -> str | None:
+    for p in _KOREAN_TTF_CANDIDATES:
+        if Path(p).exists():
+            return p
+    return None
+
 
 class PDFInjector:
     def __init__(
         self,
         flatten: bool = True,
         font_size: int = 11,
-        fontname: str = "korea",  # PyMuPDF 내장 한국어 폰트
-        fontfile: str | None = None,  # 사용자 지정 TTF(예: malgun.ttf) 시 우선
+        fontname: str = "korea",  # PyMuPDF 내장 한국어 폰트 (TTF 없을 때 폴백)
+        fontfile: str | None = None,  # 한글 TTF. None 이면 맑은고딕 등 자동 탐지
     ):
         self.flatten = flatten
         self.font_size = font_size
+        if fontfile is None:
+            fontfile = _find_korean_ttf()  # 맑은고딕 자동 사용
         self.fontname = "kfont" if fontfile else fontname
         self.fontfile = fontfile
+        # 실제 글자 폭 측정용 (TTF 일 때만 — 영문 비례폭까지 정확)
+        self._measure_font = fitz.Font(fontfile=fontfile) if fontfile else None
 
     def fill(self, src_pdf: Path, fields: list[FilledField], out_pdf: Path,
              schema=None) -> Path:
@@ -115,9 +133,14 @@ class PDFInjector:
 
         # 단일행: 폭에 맞게 글자 크기 자동 축소
         box_w = max(rect.x1 - rect.x0 - 4, 1.0)
-        # 내장 CJK 폰트는 영문도 전각으로 그리므로 모든 글자를 ~1em 으로 보수 추정
-        units = float(max(len(text), 1))
-        size = max(6.0, min(float(self.font_size), box_w / units))
+        size = float(self.font_size)
+        if self._measure_font is not None:
+            # TTF: 실제 글자 폭으로 정확히 측정 (영문 비례폭 포함)
+            while size > 6.0 and self._measure_font.text_length(text, fontsize=size) > box_w:
+                size -= 0.5
+        else:
+            # 내장 CJK 폰트는 영문도 전각이라 모든 글자를 ~1em 으로 보수 추정
+            size = max(6.0, min(size, box_w / max(len(text), 1)))
         baseline = rect.y1 - max(4.0, (rect.y1 - rect.y0 - size) / 2)
         page.insert_text((rect.x0 + 2, baseline), text, fontname=self.fontname,
                          fontfile=self.fontfile, fontsize=size)
