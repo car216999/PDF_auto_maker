@@ -264,10 +264,10 @@ function UploadStep({ onUpload, loading }) {
 }
 
 const GEN_STEPS = [
-  { ico: '🔍', text: '사내 문서에서 근거를 검색하는 중…', sub: 'BM25 + BGE-M3 하이브리드 검색' },
-  { ico: '🎯', text: '관련 근거를 정밀 선별하는 중…', sub: 'cross-encoder 리랭킹 (2단계 검색)' },
-  { ico: '🤖', text: 'LLM이 근거 기반으로 값을 채우는 중…', sub: 'Qwen3 8B · 환각 제어' },
-  { ico: '🔒', text: '전 과정을 사내(로컬)에서 처리 중…', sub: '외부 네트워크 호출 0건' },
+  { ico: '🔍', text: '사내 문서에서 근거를 찾는 중', sub: '하이브리드 검색 · BM25 + BGE-M3' },
+  { ico: '🎯', text: '가장 정확한 근거를 고르는 중', sub: '2단계 정밀 검색 · cross-encoder 리랭킹' },
+  { ico: '✍️', text: '근거를 바탕으로 항목을 채우는 중', sub: '로컬 LLM · Qwen3 8B (환각 제어)' },
+  { ico: '🔒', text: '모든 처리를 기기 안에서 끝내는 중', sub: '외부 전송 0건 · 완전 로컬' },
 ]
 
 function GeneratingOverlay({ filename, fields }) {

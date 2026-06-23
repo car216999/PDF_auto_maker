@@ -271,7 +271,7 @@ body {
 .logout:hover { color: var(--blue); }
 .more { color: var(--muted); cursor: pointer; }
 .content { flex: 1; padding: 28px 36px; }
-.card-wrap { max-width: 760px; }
+.card-wrap { width: 100%; }  /* 대시보드처럼 콘텐츠 영역을 채워 반응형 */
 
 /* 대시보드 */
 .dash-title { font-size: 22px; color: var(--navy); margin: 6px 0 6px; }
