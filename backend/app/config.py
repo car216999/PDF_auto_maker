@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     # --- 데이터 경로 ---
     qdrant_dir: Path = PROJECT_ROOT / "data" / "qdrant"  # Qdrant 임베디드 로컬
+    fastembed_dir: Path = PROJECT_ROOT / "data" / "fastembed"  # BM25 sparse 모델 캐시
     forms_dir: Path = PROJECT_ROOT / "data" / "forms"
     knowledge_dir: Path = PROJECT_ROOT / "data" / "knowledge"
     upload_dir: Path = PROJECT_ROOT / "data" / "uploads"

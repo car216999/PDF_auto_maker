@@ -25,6 +25,7 @@ def _pipeline(tmp_path) -> RAGPipeline:
         embedder=FakeEmbedder(),
         persist_dir=tmp_path / "qdrant",
         collection_name="test_kb",
+        hybrid=False,  # 단위 테스트는 dense 단일로 결정론 유지
     )
 
 
@@ -79,6 +80,7 @@ def test_retrieve_empty_collection_no_embed(tmp_path):
         embedder=BoomEmbedder(),
         persist_dir=tmp_path / "qdrant",
         collection_name="empty_kb",
+        hybrid=False,
     )
     res = rag.retrieve("아무거나")
     assert res.chunks == []
