@@ -36,6 +36,24 @@ def test_flat_fill_overlays_values(tmp_path):
     assert "주식회사 엑시오" in text and "600만원" in text
 
 
+def test_flat_section_detection(tmp_path):
+    """섹션 제목(아래 빈 영역)과 인라인(밑줄) 모두 감지, 큰 글씨 제목은 제외."""
+    from scripts.make_flat_plan import build as build_plan
+
+    src = build_plan(tmp_path / "plan.pdf")
+    schema = PDFParser().parse(src, "p1")
+    by_label = {f.label: f for f in schema.fields}
+    # 인라인 (밑줄 위, 한 줄)
+    for lbl in ["프로젝트명", "팀명", "팀장"]:
+        f = by_label[lbl]
+        assert (f.bbox.y1 - f.bbox.y0) < 30  # 단일행
+    # 섹션 (제목 아래 빈 영역, 문단)
+    for lbl in ["추진배경 및 필요성", "서비스 내용", "주요 기술", "기대 효과"]:
+        f = by_label[lbl]
+        assert (f.bbox.y1 - f.bbox.y0) > 34  # 멀티라인 영역
+    assert "프로젝트 기획서" not in by_label  # 큰 글씨 제목 제외
+
+
 def test_acroform_still_uses_widget_path(tmp_path):
     """AcroForm 양식은 is_flat=False — 기존 위젯 경로 유지."""
     from scripts.make_sample_form import build as build_form
