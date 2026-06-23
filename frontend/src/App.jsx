@@ -263,7 +263,41 @@ function UploadStep({ onUpload, loading }) {
   )
 }
 
+const GEN_STEPS = [
+  { ico: '🔍', text: '사내 문서에서 근거를 검색하는 중…', sub: 'BM25 + BGE-M3 하이브리드 검색' },
+  { ico: '🎯', text: '관련 근거를 정밀 선별하는 중…', sub: 'cross-encoder 리랭킹 (2단계 검색)' },
+  { ico: '🤖', text: 'LLM이 근거 기반으로 값을 채우는 중…', sub: 'Qwen3 8B · 환각 제어' },
+  { ico: '🔒', text: '전 과정을 사내(로컬)에서 처리 중…', sub: '외부 네트워크 호출 0건' },
+]
+
+function GeneratingOverlay({ filename, fields }) {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 2800)
+    return () => clearInterval(t)
+  }, [])
+  const s = GEN_STEPS[i]
+  return (
+    <div className="gen-overlay">
+      <div className="gen-spinner" />
+      <div className="gen-step" key={i}>
+        <div className="gen-ico">{s.ico}</div>
+        <b>{s.text}</b>
+        <p>{s.sub}</p>
+      </div>
+      <ol className="gen-track">
+        {GEN_STEPS.map((g, idx) => (
+          <li key={idx} className={idx === i ? 'on' : idx < i ? 'done' : ''} />
+        ))}
+      </ol>
+      <div className="gen-bar"><i /></div>
+      <p className="gen-foot">{filename} · 필드 {fields}개 채우는 중 — 로컬 LLM, 보통 20~30초</p>
+    </div>
+  )
+}
+
 function ConceptStep({ form, concept, setConcept, onGenerate, onBack, loading }) {
+  if (loading) return <GeneratingOverlay filename={form.filename} fields={form.fields.length} />
   return (
     <div>
       <div className="row-between">
