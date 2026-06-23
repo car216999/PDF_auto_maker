@@ -113,6 +113,14 @@ class PDFParser:
                     seen.add(field.name)
                     fields.append(field)
 
+            # AcroForm 위젯이 없으면 평면 PDF로 보고 라벨+빈칸 감지 폴백
+            is_flat = False
+            if not fields:
+                from app.parsing.flat_parser import detect_flat_fields
+
+                fields = detect_flat_fields(doc)
+                is_flat = bool(fields)
+
             return FormSchema(
                 form_id=form_id,
                 filename=pdf_path.name,
@@ -120,7 +128,8 @@ class PDFParser:
                 fields=fields,
                 metadata={
                     "is_form": bool(doc.is_form_pdf),
-                    "widget_count": len(fields),
+                    "is_flat": is_flat,
+                    "field_count": len(fields),
                     "title": doc.metadata.get("title", "") if doc.metadata else "",
                 },
             )

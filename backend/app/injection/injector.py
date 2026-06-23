@@ -32,8 +32,14 @@ class PDFInjector:
         self.fontname = "kfont" if fontfile else fontname
         self.fontfile = fontfile
 
-    def fill(self, src_pdf: Path, fields: list[FilledField], out_pdf: Path) -> Path:
-        """원본 빈 PDF + 값 → 채워진 PDF."""
+    def fill(self, src_pdf: Path, fields: list[FilledField], out_pdf: Path,
+             schema=None) -> Path:
+        """원본 빈 PDF + 값 → 채워진 PDF.
+
+        schema 가 평면 PDF(is_flat) 이면 위젯 대신 스키마 좌표에 오버레이한다.
+        """
+        if schema is not None and schema.metadata.get("is_flat"):
+            return self._fill_flat(src_pdf, schema, fields, out_pdf)
         values = {f.name: (f.value or "").strip() for f in fields}
         doc = fitz.open(src_pdf)
         try:
@@ -64,6 +70,25 @@ class PDFInjector:
                 for pno, rect, text, is_check in overlays:
                     self._draw(doc[pno], rect, text, is_check)
 
+            out_pdf.parent.mkdir(parents=True, exist_ok=True)
+            doc.save(out_pdf, garbage=3, deflate=True)
+        finally:
+            doc.close()
+        return out_pdf
+
+    def _fill_flat(self, src_pdf: Path, schema, fields: list[FilledField],
+                   out_pdf: Path) -> Path:
+        """평면 PDF: 위젯이 없으므로 스키마가 감지한 좌표(bbox)에 값을 오버레이한다."""
+        values = {f.name: (f.value or "").strip() for f in fields}
+        bbox_by_name = {f.name: f for f in schema.fields}
+        doc = fitz.open(src_pdf)
+        try:
+            for name, val in values.items():
+                field = bbox_by_name.get(name)
+                if not val or field is None or field.bbox is None:
+                    continue
+                b = field.bbox
+                self._draw(doc[field.page], fitz.Rect(b.x0, b.y0, b.x1, b.y1), val, False)
             out_pdf.parent.mkdir(parents=True, exist_ok=True)
             doc.save(out_pdf, garbage=3, deflate=True)
         finally:

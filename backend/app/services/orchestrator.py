@@ -46,7 +46,7 @@ class Orchestrator:
         if record is None:
             raise KeyError(form_id)
         out = settings.output_dir / f"{form_id}_filled.pdf"
-        return self.injector.fill(record.src_path, fields, out)
+        return self.injector.fill(record.src_path, fields, out, schema=record.schema)
 
 
 orchestrator = Orchestrator()
