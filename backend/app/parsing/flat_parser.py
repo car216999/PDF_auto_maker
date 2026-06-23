@@ -169,6 +169,8 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
         # 1) 표 칸 채우기 (라벨 칸 + 값 칸)
         tfields, occupied = _table_fields(page, pno, len(fields))
         fields.extend(tfields)
+        page_start = len(fields)  # 이 페이지 평면 필드 시작 위치
+        dropdowns: list[tuple] = []  # 라벨 없는 선택 슬롯(전체가 placeholder)
 
         # 폰트 메타(크기·굵기) — 제목/소제목 판별용 (flag 16 = bold)
         spans = [(sp["bbox"], sp["size"], bool(sp["flags"] & 16))
@@ -198,6 +200,15 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
 
         for ws in line_words.values():
             ws.sort(key=lambda w: w[0])
+
+            # 드롭다운: 줄 전체가 안내문(placeholder)이면 라벨 없는 선택 슬롯
+            if all(_is_filler(w[4]) for w in ws) and "".join(w[4] for w in ws).strip():
+                dx0 = min(w[0] for w in ws)
+                dy0 = min(w[1] for w in ws)
+                dy1 = max(w[3] for w in ws)
+                if not _inside(occupied, dx0 + 1, (dy0 + dy1) / 2):
+                    dropdowns.append((dy0, dx0, dy1))
+                continue
 
             # 콜론 인라인: 한 줄 안 '라벨 : ___' 들 (좌/우 컬럼·여러 개 모두)
             colon_ws = [w for w in ws if ":" in w[4] or "：" in w[4]]
@@ -292,5 +303,26 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
                 page=pno,
                 bbox=BBox(x0=bx0, y0=by0, x1=bx1, y1=by1),
             ))
+
+        # 드롭다운(선택 슬롯) → 바로 위 라벨을 붙여 필드화 (여러 개면 번호)
+        snapshot = [f for f in fields[page_start:] if f.bbox]
+
+        def _parent(dy0: float) -> str:
+            ab = [f for f in snapshot if f.bbox.y1 <= dy0 + 2]
+            return max(ab, key=lambda f: f.bbox.y0).label if ab else "선택 항목"
+
+        dd = sorted(dropdowns)
+        labels = [_parent(dy0) for dy0, _, _ in dd]
+        run: dict[str, int] = {}
+        for (dy0, dx0, dy1), pl in zip(dd, labels):
+            if labels.count(pl) > 1:
+                run[pl] = run.get(pl, 0) + 1
+                lbl = f"{pl} {run[pl]}"
+            else:
+                lbl = pl
+            fields.append(FormField(
+                name=f"flat_{pno}_{len(fields)}", label=lbl,
+                field_type=FieldType.TEXT, page=pno,
+                bbox=BBox(x0=dx0, y0=dy0, x1=right, y1=dy1)))
 
     return fields
