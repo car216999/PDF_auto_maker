@@ -29,10 +29,22 @@ def _clean(text: str) -> str:
     return text.rstrip(":：·").strip()
 
 
+# Word 콘텐츠 컨트롤 안내문(placeholder) 단어 — 값칸을 채우면 사라질 자리표시
+_PLACEHOLDER_WORDS = {
+    "텍스트를", "날짜를", "항목을", "여기를", "입력하려면", "클릭하세요", "클릭하세요.",
+    "선택하세요", "선택하세요.", "선택하십시오", "선택하십시오.", "선택하십시오.)",
+    "입력하십시오", "입력하십시오.", "(아래에서", "종류를",
+}
+
+
 def _is_filler(s: str) -> bool:
-    """값칸 placeholder 글자(점선·언더바·U+FDxx 등) — 실제 내용 아님."""
+    """값칸 placeholder(점선·언더바·U+FDxx, Word 안내문) — 실제 내용 아님."""
     s = s.strip()
-    return bool(s) and all(0xFD00 <= ord(c) <= 0xFDFF or c in "._·…―—-‥∙•" for c in s)
+    if not s:
+        return False
+    if s in _PLACEHOLDER_WORDS:
+        return True
+    return all(0xFD00 <= ord(c) <= 0xFDFF or c in "._·…―—-‥∙•" for c in s)
 
 
 def _is_heading(raw: str) -> bool:

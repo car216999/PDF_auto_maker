@@ -142,8 +142,18 @@ class PDFInjector:
             # 내장 CJK 폰트는 영문도 전각이라 모든 글자를 ~1em 으로 보수 추정
             size = max(6.0, min(size, box_w / max(len(text), 1)))
         baseline = rect.y1 - max(4.0, (rect.y1 - rect.y0 - size) / 2)
+        self._clear(page, rect)  # 값칸의 기존 안내문(placeholder) 가리기
         page.insert_text((rect.x0 + 2, baseline), text, fontname=self.fontname,
                          fontfile=self.fontfile, fontsize=size)
+
+    @staticmethod
+    def _clear(page, rect: fitz.Rect) -> None:
+        """값 영역의 기존 placeholder/안내문을 흰색으로 덮는다(테두리선은 건드리지 않음)."""
+        try:
+            page.draw_rect(fitz.Rect(rect.x0, rect.y0, rect.x1, rect.y1),
+                           color=None, fill=(1, 1, 1))
+        except Exception:
+            pass
 
     def _draw_paragraph(self, page, rect: fitz.Rect, text: str) -> None:
         """멀티라인 박스: 글자 크기를 줄여가며 박스에 맞게 한 번에 그린다.
@@ -151,6 +161,7 @@ class PDFInjector:
         insert_textbox 는 오버플로우 시 음수를 반환하고 '아무것도 그리지 않으므로'
         반환값이 0 이상이 될 때까지 폰트를 줄이는 재시도가 안전하다(겹침 없음).
         """
+        self._clear(page, rect)  # 값칸의 기존 안내문 가리기
         box = fitz.Rect(rect.x0 + 3, rect.y0 + 2, rect.x1 - 3, rect.y1 - 2)
         size = float(self.font_size)
         while size >= 5.0:
