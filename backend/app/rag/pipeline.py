@@ -2,14 +2,16 @@
 
 벡터스토어: Qdrant(임베디드 로컬, path 모드 → 서버 불필요).
 임베딩: BGE-M3(1024d, dense) via Ollama + BM25(sparse) via fastembed.
-검색: dense(의미) + sparse(어휘) → Qdrant 네이티브 RRF 융합 (하이브리드).
+검색(2단계):
+  1) dense(의미) + sparse(어휘) → Qdrant 네이티브 RRF 융합으로 후보 N개 (하이브리드)
+  2) cross-encoder(jina multilingual)로 (질의,후보) 직접 채점 → top-k 정밀 재정렬
 
-dense 는 의미 유사, sparse(BM25)는 정확 키워드·번호(선급번호·IMO 등) 매칭에 강해
-둘을 RRF 로 합치면 견적서·선급 양식처럼 고유명사·코드가 많은 도메인에 효과적이다.
+dense 는 의미 유사, sparse(BM25)는 정확 키워드·번호(선급번호·IMO 등) 매칭에 강하고,
+cross-encoder 는 질의-문서를 함께 보고 정밀 채점한다. 견적서·선급 양식처럼 고유명사·
+코드가 많은 도메인에 특히 효과적이다.
 
 [로컬 ↔ 서버 전환] QdrantClient(path=...) → QdrantClient(url="http://...:6333") 한 줄.
-[하이브리드 끄기] RAGPipeline(hybrid=False) — dense 단일 검색(단위 테스트 등).
-(중장기: cross-encoder 리랭킹 추가)
+[끄기] RAGPipeline(hybrid=False, rerank=False) — dense 단일 검색(단위 테스트 등).
 """
 from pathlib import Path
 
@@ -30,13 +32,16 @@ class RAGPipeline:
         persist_dir: Path | str | None = None,
         collection_name: str = "tooktak_knowledge",
         hybrid: bool = True,
+        rerank: bool = True,
     ):
         self._embedder = embedder
         self.persist_dir = Path(persist_dir) if persist_dir else settings.qdrant_dir
         self.collection_name = collection_name
         self.hybrid = hybrid
+        self.rerank = rerank
         self._client = None
         self._bm25 = None
+        self._reranker = None
 
     # --- 지연 초기화 (생성만으로는 Ollama·디스크 작업 없음) ---
     @property
@@ -55,6 +60,17 @@ class RAGPipeline:
                 "Qdrant/bm25", cache_dir=str(settings.fastembed_dir)
             )
         return self._bm25
+
+    @property
+    def reranker(self):
+        """cross-encoder 리랭커 (fastembed, onnx). 캐시는 프로젝트 폴더에 고정."""
+        if self._reranker is None:
+            from fastembed.rerank.cross_encoder import TextCrossEncoder
+
+            self._reranker = TextCrossEncoder(
+                settings.rerank_model, cache_dir=str(settings.fastembed_dir)
+            )
+        return self._reranker
 
     @property
     def client(self):
@@ -158,36 +174,47 @@ class RAGPipeline:
         if self.client.count(self.collection_name).count == 0:
             return RetrievalResult(query=query, chunks=[])
 
+        # 1단계: 하이브리드(또는 dense)로 후보 fetch개 (리랭킹 시 더 넓게)
+        fetch = settings.rerank_fetch if self.rerank else k
         dense = self.embedder.embed([query])[0]
         if self.hybrid:
             res = self.client.query_points(
                 self.collection_name,
                 prefetch=[
-                    models.Prefetch(query=dense, using=_DENSE, limit=max(k * 3, 12)),
+                    models.Prefetch(query=dense, using=_DENSE, limit=max(fetch, 12)),
                     models.Prefetch(
                         query=self._sparse_query(query), using=_SPARSE,
-                        limit=max(k * 3, 12),
+                        limit=max(fetch, 12),
                     ),
                 ],
                 query=models.FusionQuery(fusion=models.Fusion.RRF),
-                limit=k,
+                limit=fetch,
                 with_payload=True,
             )
         else:
             res = self.client.query_points(
                 self.collection_name, query=dense, using=_DENSE,
-                limit=k, with_payload=True,
+                limit=fetch, with_payload=True,
             )
+        cands = [(p.payload or {}, float(p.score)) for p in res.points]
 
-        chunks: list[RetrievedChunk] = []
-        for p in res.points:
-            meta = p.payload or {}
-            chunks.append(
-                RetrievedChunk(
-                    text=meta.get("text", ""),
-                    source=meta.get("source", "unknown"),
-                    score=max(0.0, float(p.score)),  # RRF/코사인 점수
-                    metadata=meta,
-                )
+        # 2단계: cross-encoder 리랭킹 → 정밀 재정렬 (실패 시 1단계 순위 폴백)
+        if self.rerank and len(cands) > 1:
+            try:
+                import math
+
+                scores = list(self.reranker.rerank(query, [m.get("text", "") for m, _ in cands]))
+                order = sorted(range(len(cands)), key=lambda i: scores[i], reverse=True)
+                cands = [(cands[i][0], 1.0 / (1.0 + math.exp(-scores[i]))) for i in order]
+            except Exception:
+                pass  # 리랭커 로드/추론 실패 → 하이브리드 순위 그대로
+        cands = cands[:k]
+
+        chunks = [
+            RetrievedChunk(
+                text=m.get("text", ""), source=m.get("source", "unknown"),
+                score=max(0.0, s), metadata=m,
             )
+            for m, s in cands
+        ]
         return RetrievalResult(query=query, chunks=chunks)

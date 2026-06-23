@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     top_k: int = 4
     chunk_size: int = 800
     chunk_overlap: int = 120
+    # 2단계 리랭킹: 하이브리드로 rerank_fetch개 후보 → cross-encoder로 top_k 선별
+    rerank_model: str = "jinaai/jina-reranker-v2-base-multilingual"  # onnx, 다국어
+    rerank_fetch: int = 20
 
     # --- 데이터 경로 ---
     qdrant_dir: Path = PROJECT_ROOT / "data" / "qdrant"  # Qdrant 임베디드 로컬
