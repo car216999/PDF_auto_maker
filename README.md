@@ -11,7 +11,7 @@
 
 > 저장소: **https://github.com/car216999/PDF_auto_maker**
 
-오픈소스 LLM·RAG 기반 **PDF 양식 자동 작성 시스템**. 빈 양식 + 컨셉 입력만으로 완성 문서를 생성한다.
+LLM·RAG 기반 **지능형 문서처리(IDP) 에이전트**. 빈 양식 + 컨셉 입력만으로 완성 문서를 생성한다.
 **외부 API 호출 0건 — 완전 로컬.** (Qwen3 8B · BGE-M3 · PyMuPDF · Qdrant)
 
 ## 처리 흐름

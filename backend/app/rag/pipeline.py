@@ -217,4 +217,12 @@ class RAGPipeline:
             )
             for m, s in cands
         ]
+        try:  # 검색 가시화 로그 (하이브리드/리랭크 결과 확인용)
+            print(
+                f"[RAG] hybrid={self.hybrid} rerank={self.rerank} q={query[:45]!r} "
+                f"-> {[(c.source[:24], round(c.score, 3)) for c in chunks]}",
+                flush=True,
+            )
+        except Exception:
+            pass
         return RetrievalResult(query=query, chunks=chunks)

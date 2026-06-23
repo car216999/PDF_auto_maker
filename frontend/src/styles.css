@@ -205,3 +205,114 @@ body {
   font-size: 12px;
   margin-top: 28px;
 }
+
+/* ===== 대시보드 레이아웃 ===== */
+.layout { display: flex; min-height: 100vh; }
+
+/* 사이드바 */
+.sidebar {
+  width: 188px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid var(--line);
+  padding: 0 12px 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 10px 4px;
+}
+.brand-logo { width: 150px; height: auto; display: block; }
+.brand-mark { font-size: 20px; }
+.brand-name { font-weight: 800; color: var(--navy); letter-spacing: 0.5px; }
+.nav { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
+.nav-group {
+  font-size: 11px; color: var(--muted); font-weight: 700;
+  margin: 14px 0 4px; padding-left: 10px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: 9px 10px; border-radius: 9px;
+  font-size: 14px; color: var(--text); font-family: inherit;
+}
+.nav-item:hover:not(:disabled) { background: #f3f6fc; }
+.nav-item.on { background: #e9f1ff; color: var(--blue); font-weight: 700; }
+.nav-item:disabled { color: var(--muted); cursor: default; }
+.nav-ico { width: 16px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--blue); color: #fff;
+  font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 20px;
+}
+
+/* 본문 컬럼 + 토픽바 */
+.main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px;
+}
+.secure {
+  background: #e8f7ee; color: var(--green);
+  font-size: 13px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px;
+}
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.user { font-size: 14px; color: var(--text); }
+.logout {
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; color: var(--text); font-family: inherit;
+}
+.logout:hover { color: var(--blue); }
+.more { color: var(--muted); cursor: pointer; }
+.content { flex: 1; padding: 28px 36px; }
+.card-wrap { max-width: 760px; }
+
+/* 대시보드 */
+.dash-title { font-size: 22px; color: var(--navy); margin: 6px 0 6px; }
+.dash-sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+.dash-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+.dash-card {
+  flex: 1; min-width: 240px;
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px; cursor: pointer; text-align: left;
+  font-family: inherit; transition: 0.15s;
+}
+.dash-card:hover:not(:disabled) { border-color: var(--blue); box-shadow: 0 3px 12px rgba(47,111,237,0.1); }
+.dash-card:disabled { cursor: default; opacity: 0.85; }
+.dash-card b { color: var(--navy); font-size: 15px; }
+.dash-card p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.dash-card-ico {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: grid; place-items: center; font-size: 20px; flex-shrink: 0;
+}
+.dash-card-ico.blue { background: #e9f1ff; }
+.dash-card-ico.gray { background: #f0f2f6; }
+
+/* 최근 작업 */
+.recent {
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 14px; padding: 18px 20px;
+}
+.recent h2 { font-size: 16px; margin: 0; color: var(--navy); }
+.link { color: var(--blue); font-size: 13px; cursor: pointer; text-decoration: none; }
+.recent-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.recent-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 4px; border-top: 1px solid var(--line);
+}
+.file-ico { font-size: 18px; }
+.recent-meta { flex: 1; min-width: 0; }
+.recent-meta b { display: block; font-size: 14px; color: var(--text); }
+.recent-meta span { font-size: 12px; color: var(--muted); }
+.status {
+  font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+}
+.status.done { background: #e8f7ee; color: var(--green); }
+.status.progress { background: #fdf2e0; color: var(--amber); }
