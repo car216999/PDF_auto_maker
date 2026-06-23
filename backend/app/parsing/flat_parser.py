@@ -54,6 +54,55 @@ def _horizontal_lines(page: fitz.Page) -> list[tuple[float, float, float]]:
     return out
 
 
+def _table_fields(page: fitz.Page, pno: int, start: int):
+    """표(셀 격자) 감지 → '글자 있는 라벨 칸 + 옆 빈 값 칸' 짝지어 필드 생성.
+
+    반환: (필드 목록, 표 셀 영역 목록[라인 감지 제외용]).
+    """
+    fields: list[FormField] = []
+    occupied: list[tuple] = []
+    try:
+        tabs = page.find_tables()
+    except Exception:
+        return fields, occupied
+
+    n = start
+    for tab in getattr(tabs, "tables", []):
+        try:
+            data = tab.extract()
+        except Exception:
+            continue
+        for ri, row in enumerate(tab.rows):
+            cells = row.cells
+            texts = data[ri] if ri < len(data) else []
+            for c in cells:
+                if c:
+                    occupied.append(tuple(c))
+            ci = 0
+            while ci < len(cells) - 1:
+                bb = cells[ci]
+                tx = (texts[ci] or "").strip() if ci < len(texts) else ""
+                nb = cells[ci + 1]
+                ntx = (texts[ci + 1] or "").strip() if ci + 1 < len(texts) else ""
+                if bb and tx and nb and not ntx:  # 라벨 칸 + 빈 값 칸
+                    label = _clean(tx)
+                    x0, y0, x1, y1 = nb
+                    if _looks_like_label(label) and x1 - x0 >= 40:
+                        fields.append(FormField(
+                            name=f"tbl_{pno}_{n}", label=label, page=pno,
+                            bbox=BBox(x0=x0 + 4, y0=y0 + 2, x1=x1 - 4, y1=y1 - 2),
+                        ))
+                        n += 1
+                    ci += 2
+                else:
+                    ci += 1
+    return fields, occupied
+
+
+def _inside(rects: list[tuple], x: float, y: float) -> bool:
+    return any(r[0] - 1 <= x <= r[2] + 1 and r[1] - 1 <= y <= r[3] + 1 for r in rects)
+
+
 def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
     fields: list[FormField] = []
     seen: set[str] = set()
@@ -63,6 +112,10 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
         left_zone = page.rect.width * 0.4
         hlines = _horizontal_lines(page)
         words = page.get_text("words")
+
+        # 1) 표 칸 채우기 (라벨 칸 + 값 칸)
+        tfields, occupied = _table_fields(page, pno, len(fields))
+        fields.extend(tfields)
 
         # 폰트 크기 조회용 스팬 (제목 등 큰 글씨 제외)
         spans = [(sp["bbox"], sp["size"])
@@ -106,6 +159,9 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
             label_end = cluster[-1][2]
             y0 = min(w[1] for w in cluster)
             y1 = max(w[3] for w in cluster)
+
+            if _inside(occupied, x0 + 1, (y0 + y1) / 2):  # 표 안 텍스트는 표 로직이 처리
+                continue
 
             # 1순위: 우측 밑줄 → 인라인 (위치 무관, 밑줄이 필드를 확정)
             cand = [ln for ln in hlines

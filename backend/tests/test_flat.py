@@ -54,6 +54,27 @@ def test_flat_section_detection(tmp_path):
     assert "프로젝트 기획서" not in by_label  # 큰 글씨 제목 제외
 
 
+def test_table_cell_detection_and_fill(tmp_path):
+    """표(셀 격자)에서 라벨 칸+값 칸을 짝지어 값 칸에 채운다."""
+    from scripts.make_table_form import build as build_table
+
+    src = build_table(tmp_path / "tbl.pdf")
+    schema = PDFParser().parse(src, "t1")
+    labels = {f.label for f in schema.fields}
+    assert {"팀명", "팀원 및 역할", "주제 구분", "제안 배경 및 필요성"} <= labels
+
+    by_label = {f.label: f.name for f in schema.fields}
+    filled = [
+        FilledField(name=by_label["팀명"], value="뚝딱 (TookTak)"),
+        FilledField(name=by_label["제안 배경 및 필요성"], value="외부 API 의존을 제거한 온프레미스 RAG 시스템."),
+    ]
+    out = PDFInjector(flatten=True).fill(src, filled, tmp_path / "out.pdf", schema=schema)
+    doc = fitz.open(out)
+    text = "".join(p.get_text() for p in doc)
+    doc.close()
+    assert "뚝딱 (TookTak)" in text and "온프레미스" in text
+
+
 def test_acroform_still_uses_widget_path(tmp_path):
     """AcroForm 양식은 is_flat=False — 기존 위젯 경로 유지."""
     from scripts.make_sample_form import build as build_form
