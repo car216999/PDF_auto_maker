@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     rerank_model: str = "jinaai/jina-reranker-v2-base-multilingual"  # onnx, 다국어
     rerank_fetch: int = 20
 
+    # --- DB (선택) — 설정 시 폼·문서 이력 영속화. 없으면 메모리 동작 ---
+    db_url: str = ""  # 예: postgresql+psycopg2://user:pw@host:port/db
+    default_user_email: str = "the@aeokorea.com"
+    default_user_name: str = "김세경"
+
     # --- 데이터 경로 ---
     qdrant_dir: Path = PROJECT_ROOT / "data" / "qdrant"  # Qdrant 임베디드 로컬
     fastembed_dir: Path = PROJECT_ROOT / "data" / "fastembed"  # BM25 sparse 모델 캐시

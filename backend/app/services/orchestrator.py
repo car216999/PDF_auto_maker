@@ -7,6 +7,7 @@
 import uuid
 from pathlib import Path
 
+from app import db
 from app.config import settings
 from app.generation.generator import FieldGenerator
 from app.injection.injector import PDFInjector
@@ -29,6 +30,7 @@ class Orchestrator:
         form_id = uuid.uuid4().hex[:12]
         schema = self.parser.parse(pdf_path, form_id)
         store.put(FormRecord(form_id=form_id, src_path=pdf_path, schema=schema))
+        db.save_form(schema, str(pdf_path))  # DB 영속화 (실패해도 무시)
         return schema
 
     def generate(
@@ -38,7 +40,9 @@ class Orchestrator:
         record = store.get(form_id)
         if record is None:
             raise KeyError(form_id)
-        return self.generator.generate(record.schema, concept, overrides)
+        result = self.generator.generate(record.schema, concept, overrides)
+        db.save_document(form_id, concept, result.model, result.fields)  # 이력 저장
+        return result
 
     def fill(self, form_id: str, fields: list[FilledField]) -> Path:
         """③ 확정값 → PDF 주입."""

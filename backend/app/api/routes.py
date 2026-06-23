@@ -4,12 +4,19 @@ import uuid
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from app import db
 from app.config import settings
 from app.schemas.api import (DownloadResponse, FillRequest, GenerateRequest,
                              GenerateResponse, UploadResponse)
 from app.services.orchestrator import orchestrator
 
 router = APIRouter(prefix="/api", tags=["tooktak"])
+
+
+@router.get("/documents/recent")
+async def recent_documents(limit: int = 8) -> dict:
+    """대시보드 최근 작업 — DB 영속화 시 실데이터, 미설정 시 빈 목록."""
+    return {"items": db.recent_documents(limit), "db": db.enabled()}
 
 
 @router.post("/forms/upload", response_model=UploadResponse)

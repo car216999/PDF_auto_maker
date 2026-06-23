@@ -41,3 +41,13 @@ export async function downloadFilled(formId, fields) {
 export function fileUrl(formId) {
   return `${BASE}/forms/${formId}/file`
 }
+
+export async function fetchRecent(limit = 8) {
+  try {
+    const r = await fetch(`${BASE}/documents/recent?limit=${limit}`)
+    if (!r.ok) return { items: [], db: false }
+    return await r.json()
+  } catch {
+    return { items: [], db: false }
+  }
+}

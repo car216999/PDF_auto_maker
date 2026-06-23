@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { uploadForm, generateFields, downloadFilled, fileUrl } from './api'
+import { useState, useEffect } from 'react'
+import { uploadForm, generateFields, downloadFilled, fileUrl, fetchRecent } from './api'
 
 const STEPS = ['양식 업로드', '컨셉 입력', '미리보기·다운로드']
 
@@ -159,7 +159,30 @@ function Topbar() {
 }
 
 /* ---------- 대시보드 ---------- */
+function fmtTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const today = new Date()
+  const sameDay = d.toDateString() === today.toDateString()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return sameDay ? `오늘 ${hh}:${mm}` : `${d.getMonth() + 1}월 ${d.getDate()}일 ${hh}:${mm}`
+}
+
 function Dashboard({ onCreate }) {
+  const [items, setItems] = useState(RECENT) // 기본 샘플 → DB 있으면 교체
+  useEffect(() => {
+    fetchRecent().then((r) => {
+      if (r.items && r.items.length) {
+        setItems(r.items.map((it) => ({
+          name: it.name,
+          meta: `${fmtTime(it.created_at)} · 필드 ${it.fields}개`,
+          status: it.status === '완료' || it.status === 'done' ? 'done' : 'progress',
+        })))
+      }
+    })
+  }, [])
   return (
     <div className="dash">
       <h1 className="dash-title">LLM·RAG 기반 지능형 문서처리(IDP) 에이전트</h1>
@@ -188,8 +211,8 @@ function Dashboard({ onCreate }) {
           <a className="link">전체 보기 ›</a>
         </div>
         <ul className="recent-list">
-          {RECENT.map((r) => (
-            <li key={r.name} className="recent-item">
+          {items.map((r, i) => (
+            <li key={r.name + i} className="recent-item">
               <span className="file-ico">📄</span>
               <div className="recent-meta">
                 <b>{r.name}</b>
