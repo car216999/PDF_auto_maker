@@ -29,6 +29,12 @@ def _clean(text: str) -> str:
     return text.rstrip(":：·").strip()
 
 
+def _is_filler(s: str) -> bool:
+    """값칸 placeholder 글자(점선·언더바·U+FDxx 등) — 실제 내용 아님."""
+    s = s.strip()
+    return bool(s) and all(0xFD00 <= ord(c) <= 0xFDFF or c in "._·…―—-‥∙•" for c in s)
+
+
 def _is_heading(raw: str) -> bool:
     """머리기호/번호로 시작하는 제목·소제목 (옆에 값을 채우면 안 됨)."""
     raw = raw.strip()
@@ -180,6 +186,28 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
 
         for ws in line_words.values():
             ws.sort(key=lambda w: w[0])
+
+            # 콜론 인라인: 한 줄 안 '라벨 : ___' (표 밖, 이중언어 긴 라벨 허용)
+            if ws[0][0] <= left_zone and any(":" in w[4] or "：" in w[4] for w in ws):
+                cw = next(w for w in ws if ":" in w[4] or "：" in w[4])
+                before = [w for w in ws if w[2] <= cw[2]]
+                clabel = _clean(re.split(r"[:：]", " ".join(w[4] for w in before))[0])
+                ly0 = min(w[1] for w in before)
+                ly1 = max(w[3] for w in before)
+                after = [w for w in ws if w[0] > cw[2] + 1 and not _is_filler(w[4])]
+                sx1 = (after[0][0] - 4) if after else right
+                if (2 <= len(clabel) <= 40 and sx1 - cw[2] >= 40
+                        and not re.fullmatch(r"[\d\s.,\-/:()]+", clabel)
+                        and not _inside(occupied, ws[0][0] + 1, (ly0 + ly1) / 2)):
+                    key = f"{pno}:{round(ly0)}:{clabel}"
+                    if key not in seen:
+                        seen.add(key)
+                        fields.append(FormField(
+                            name=f"flat_{pno}_{len(fields)}", label=clabel,
+                            field_type=FieldType.TEXT, page=pno,
+                            bbox=BBox(x0=cw[2] + 4, y0=ly0, x1=sx1, y1=ly1)))
+                    continue
+
             cluster = [ws[0]]
             for prev, cur in zip(ws, ws[1:]):
                 if cur[0] - prev[2] <= _LABEL_JOIN_GAP:
