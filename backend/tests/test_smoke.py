@@ -20,7 +20,7 @@ def test_health():
 def test_end_to_end_stub(tmp_path, monkeypatch):
     pdf = build(tmp_path / "sample_quote.pdf")  # 실제 AcroForm 양식
 
-    # 생성·검색 단계는 가짜로 — 스모크 테스트는 Ollama·ChromaDB 에 의존하지 않음
+    # 생성·검색 단계는 가짜로 — 스모크 테스트는 Ollama·Qdrant 에 의존하지 않음
     from app.schemas.rag import RetrievalResult
     from app.services.orchestrator import orchestrator
 

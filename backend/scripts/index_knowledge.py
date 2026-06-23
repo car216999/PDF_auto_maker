@@ -1,4 +1,4 @@
-"""사내 지식 문서를 ChromaDB 에 인덱싱.
+"""사내 지식 문서를 Qdrant 에 인덱싱.
 
 사용: uv run python -m scripts.index_knowledge
 대상: data/knowledge/*.md, *.txt

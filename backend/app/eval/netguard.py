@@ -2,7 +2,7 @@
 
 기획서 KPI '외부 호출 0건'을 말이 아닌 실측으로 증명한다.
 socket.connect 를 가로채 루프백(127.0.0.1/::1) 외 목적지를 기록한다.
-로컬 Ollama·ChromaDB 는 루프백이므로 통과, 외부 API 호출은 즉시 잡힌다.
+로컬 Ollama·Qdrant 는 루프백이므로 통과, 외부 API 호출은 즉시 잡힌다.
 """
 import ipaddress
 import socket

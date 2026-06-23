@@ -16,11 +16,11 @@ flowchart TB
 
     subgraph LOCAL["로컬 추론 · Ollama :11434"]
         LLM["Qwen3 8B (생성)"]
-        EMB["nomic-embed-text (임베딩)"]
+        EMB["BGE-M3 (임베딩)"]
     end
 
     subgraph DATA["데이터 (로컬 디스크)"]
-        CH[("ChromaDB 벡터 인덱스")]
+        CH[("Qdrant 벡터 인덱스")]
         FS[("양식·지식·완성 PDF")]
     end
 

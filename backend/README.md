@@ -12,7 +12,7 @@ uv run uvicorn app.main:app --reload
 ```
 
 전제: 로컬에 Ollama 가 떠 있고 `qwen3:8b` 모델이 받아져 있어야 함
-(`ollama pull qwen3:8b`, RAG 용은 `ollama pull nomic-embed-text`).
+(`ollama pull qwen3:8b`, RAG 용은 `ollama pull bge-m3`).
 
 ## 폴더 구조 — 모듈 = 담당자
 

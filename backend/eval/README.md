@@ -9,7 +9,7 @@ cd backend
 uv run python -m scripts.run_eval
 ```
 
-전제: Ollama(qwen3:8b, nomic-embed-text) 가 떠 있어야 함. 스크립트가 양식·인덱스를 먼저 보장한다.
+전제: Ollama(qwen3:8b, BGE-M3) 가 떠 있어야 함. 스크립트가 양식·인덱스를 먼저 보장한다.
 
 ## 측정 KPI
 

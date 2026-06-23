@@ -5,14 +5,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.137-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Ollama](https://img.shields.io/badge/Ollama-Qwen3_8B-000000?logo=ollama&logoColor=white)](https://ollama.com/)
-[![ChromaDB](https://img.shields.io/badge/Vector_DB-ChromaDB-FF6F61)](https://www.trychroma.com/)
+[![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-FF6F61)](https://qdrant.tech/)
 [![Tests](https://img.shields.io/badge/tests-37_passing-success)](backend/tests)
 [![External calls](https://img.shields.io/badge/외부_호출-0건-brightgreen)](#)
 
 > 저장소: **https://github.com/car216999/PDF_auto_maker**
 
 오픈소스 LLM·RAG 기반 **PDF 양식 자동 작성 시스템**. 빈 양식 + 컨셉 입력만으로 완성 문서를 생성한다.
-**외부 API 호출 0건 — 완전 로컬.** (Qwen3 8B · nomic-embed-text · PyMuPDF · ChromaDB)
+**외부 API 호출 0건 — 완전 로컬.** (Qwen3 8B · BGE-M3 · PyMuPDF · Qdrant)
 
 ## 처리 흐름
 
@@ -68,7 +68,7 @@ GPU 사용 시 `docker-compose.yml` 의 `deploy.resources` 주석을 해제한�
 ```bash
 # 0) Ollama + 모델 (최초 1회)
 ollama pull qwen3:8b
-ollama pull nomic-embed-text
+ollama pull bge-m3
 
 # 1) 백엔드
 cd backend
@@ -90,14 +90,14 @@ tooktak/
 │  ├─ app/
 │  │  ├─ schemas/    모듈 간 인터페이스 계약
 │  │  ├─ parsing/    PyMuPDF 폼필드·좌표 추출
-│  │  ├─ rag/        청킹·임베딩·ChromaDB 검색
+│  │  ├─ rag/        청킹·임베딩·Qdrant 검색
 │  │  ├─ generation/ Ollama(qwen3) 필드값 생성
 │  │  ├─ injection/  좌표 한글 주입·평탄화
 │  │  └─ eval/       KPI 측정 하네스
 │  ├─ scripts/       양식 생성·인덱싱·평가 실행
 │  └─ tests/         37개 (오프라인 빠른 검증)
 ├─ frontend/         React + Vite 대시보드
-├─ data/             knowledge(지식) · forms(양식) · chroma(인덱스)
+├─ data/             knowledge(지식) · forms(양식) · qdrant(인덱스)
 └─ docker-compose.yml
 ```
 

@@ -1,4 +1,4 @@
-"""RAG 파이프라인 단위 테스트 — 가짜 임베더 + 임시 ChromaDB(디스크)로 오프라인 검증.
+"""RAG 파이프라인 단위 테스트 — 가짜 임베더 + 임시 Qdrant(디스크)로 오프라인 검증.
 
 가짜 임베더는 고정 한국어 키워드 사전 기반 벡터를 만들어, 키워드가 겹치는 청크가
 검색 상위에 오도록 한다(의미적 관련성을 결정론적으로 모사).
@@ -23,7 +23,7 @@ class FakeEmbedder:
 def _pipeline(tmp_path) -> RAGPipeline:
     return RAGPipeline(
         embedder=FakeEmbedder(),
-        persist_dir=tmp_path / "chroma",
+        persist_dir=tmp_path / "qdrant",
         collection_name="test_kb",
     )
 
@@ -77,7 +77,7 @@ def test_retrieve_empty_collection_no_embed(tmp_path):
 
     rag = RAGPipeline(
         embedder=BoomEmbedder(),
-        persist_dir=tmp_path / "chroma",
+        persist_dir=tmp_path / "qdrant",
         collection_name="empty_kb",
     )
     res = rag.retrieve("아무거나")

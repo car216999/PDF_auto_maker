@@ -24,7 +24,7 @@ OUT = ROOT / "data" / "knowledge" / "tooktak_plan.md"
 # 내용 있는 문서를 고를 때 보는 후보 (최종기획서 우선)
 CANDIDATES = ["최종기획서_뚝딱.pdf", "약식기획서_뚝딱팀_v3_보강.pdf"]
 KEYWORDS = ["뚝딱", "TookTak", "Qwen", "RAG", "견적서", "엑시오",
-            "온프레미스", "PyMuPDF", "ChromaDB", "김세경"]
+            "온프레미스", "PyMuPDF", "Qdrant", "김세경"]
 
 
 def extract_text(pdf: Path) -> str:

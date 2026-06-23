@@ -1,7 +1,7 @@
 """시연 스크린샷 생성 — 빈 양식 vs 시스템이 채운 완성 문서.
 
 전체 파이프라인(파싱→RAG→생성→주입)을 돌려 결과를 PNG 로 렌더링한다.
-전제: Ollama(qwen3:8b, nomic-embed-text) 가 떠 있어야 함.
+전제: Ollama(qwen3:8b, bge-m3) 가 떠 있어야 함.
 
 사용: uv run python -m scripts.make_screenshots
 결과: docs/screenshots/01_blank_form.png, 02_filled_result.png

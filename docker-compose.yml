@@ -24,7 +24,7 @@ services:
     #           count: all
     #           capabilities: [gpu]
 
-  # 2) 모델 1회 다운로드 후 종료 (qwen3:8b + nomic-embed-text)
+  # 2) 모델 1회 다운로드 후 종료 (qwen3:8b + bge-m3)
   ollama-init:
     image: ollama/ollama:latest
     depends_on:
@@ -32,7 +32,7 @@ services:
         condition: service_healthy
     environment:
       - OLLAMA_HOST=http://ollama:11434
-    entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:8b && ollama pull nomic-embed-text"]
+    entrypoint: ["/bin/sh", "-c", "ollama pull qwen3:8b && ollama pull bge-m3"]
     restart: "no"
 
   # 3) 백엔드 API (FastAPI)
@@ -44,7 +44,7 @@ services:
     environment:
       - TOOKTAK_OLLAMA_BASE_URL=http://ollama:11434
     volumes:
-      - ./data:/data            # 지식 문서 + ChromaDB 인덱스 영속화
+      - ./data:/data            # 지식 문서 + Qdrant 인덱스 영속화
     ports:
       - "8000:8000"
     healthcheck:

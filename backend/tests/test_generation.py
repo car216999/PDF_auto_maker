@@ -20,7 +20,7 @@ class FakeLLM:
 
 
 class FakeRAG:
-    """고정 근거를 돌려주는 가짜 RAG (Ollama·ChromaDB 불필요)."""
+    """고정 근거를 돌려주는 가짜 RAG (Ollama·Qdrant 불필요)."""
 
     def __init__(self, text: str = "표준 단가는 300만원이며 부가세 별도이다."):
         self.text = text

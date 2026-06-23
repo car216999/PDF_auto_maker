@@ -57,7 +57,7 @@ PDF 파싱·폼필드 추출
 PyMuPDF 기반 AcroForm 필드/좌표 추출, 메타데이터 정형화 
 박은선 
 RAG 파이프라인 
-청킹·임베딩·벡터 저장(ChromaDB)·top-k 검색 구현 
+청킹·임베딩·벡터 저장(Qdrant)·top-k 검색 구현 
 이권형 
 LLM 서빙·백엔드 
 Ollama 모델 서빙, FastAPI 엔드포인트, PDF 데이터 주입 
@@ -244,7 +244,7 @@ PDF 주입
 pypdf / ReportLab 
 AcroForm 채움 및 좌표 오버레이 
 벡터 DB 
-ChromaDB 
+Qdrant 
 경량·로컬 구동, 주니어 친화적 API 
 LLM 서빙 
 Ollama 
@@ -299,7 +299,7 @@ PDF 파싱
 AcroForm 폼필드·라벨·좌표 추출, 메타데이터 JSON 정형화 
 필드 스키마 추출기 
 RAG 
-청킹·임베딩·ChromaDB 저장·top-k 검색 (단일 검색) 
+청킹·임베딩·Qdrant 저장·top-k 검색 (단일 검색) 
 검색 모듈 + 인덱스
 
 뚝딱(TookTak) · PDF 양식 자동 작성 시스템 기획서 
@@ -349,7 +349,7 @@ Phase 3
 공공 오픈 데이터셋(AI Hub 등) 및 가이드라인 활용 
 출처·라이선스 명시 
 벡터 인덱스 
-청킹 데이터 임베딩 후 ChromaDB 저장 
+청킹 데이터 임베딩 후 Qdrant 저장 
 RAG 검색 대상 
  
 전처리 절차 
