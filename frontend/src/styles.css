@@ -341,3 +341,26 @@ body {
 .gen-track li.on { background: var(--blue); }
 .gen-track li.done { background: var(--green); }
 .gen-foot { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+
+/* ===== 문서 관리 ===== */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-top: 14px;
+}
+.stat {
+  background: #f7f9fd; border: 1px solid var(--line);
+  border-radius: 10px; padding: 14px 16px;
+}
+.stat b { display: block; font-size: 20px; color: var(--navy); word-break: break-all; }
+.stat span { font-size: 12px; color: var(--muted); }
+.doc-table-wrap { overflow-x: auto; margin-top: 12px; }
+.doc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.doc-table th {
+  text-align: left; font-size: 12px; color: var(--muted);
+  padding: 10px; border-bottom: 2px solid var(--line); white-space: nowrap;
+}
+.doc-table td {
+  padding: 11px 10px; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.doc-name { font-weight: 600; color: var(--text); }
+.doc-model, .doc-date { color: var(--muted); font-size: 13px; }

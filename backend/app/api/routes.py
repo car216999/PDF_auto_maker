@@ -15,8 +15,36 @@ router = APIRouter(prefix="/api", tags=["tooktak"])
 
 @router.get("/documents/recent")
 async def recent_documents(limit: int = 8) -> dict:
-    """대시보드 최근 작업 — DB 영속화 시 실데이터, 미설정 시 빈 목록."""
-    return {"items": db.recent_documents(limit), "db": db.enabled()}
+    """대시보드 최근 작업 / 문서 관리 목록 — DB 영속화 시 실데이터."""
+    return {
+        "items": db.recent_documents(limit),
+        "count": db.doc_count(),
+        "db": db.enabled(),
+    }
+
+
+@router.get("/index/stats")
+async def index_stats() -> dict:
+    """RAG 인덱스 현황 — 청크 수·지식 문서 수·임베딩/벡터DB."""
+    from app.services.orchestrator import orchestrator
+
+    chunks = 0
+    try:
+        rag = orchestrator.rag
+        if rag.client.collection_exists(rag.collection_name):
+            chunks = rag.client.count(rag.collection_name).count
+    except Exception:
+        pass
+    kdir = settings.knowledge_dir
+    kfiles = (len(list(kdir.rglob("*.md"))) + len(list(kdir.rglob("*.txt")))
+              if kdir.exists() else 0)
+    return {
+        "chunks": chunks,
+        "knowledge_files": kfiles,
+        "embed_model": settings.embed_model,
+        "vector_db": "Qdrant",
+        "retrieval": "하이브리드(BM25+dense) → cross-encoder 리랭킹",
+    }
 
 
 @router.post("/forms/upload", response_model=UploadResponse)

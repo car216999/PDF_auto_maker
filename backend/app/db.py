@@ -145,12 +145,26 @@ def recent_documents(limit: int = 8) -> list[dict]:
         with _eng().connect() as c:
             rows = c.execute(text(
                 "SELECT f.filename, d.status, d.created_at, "
-                "(SELECT count(*) FROM filled_fields ff WHERE ff.document_id=d.document_id) n "
+                "(SELECT count(*) FROM filled_fields ff WHERE ff.document_id=d.document_id) n, "
+                "d.model, d.grounded_ratio "
                 "FROM documents d JOIN forms f ON f.form_id=d.form_id "
                 "ORDER BY d.created_at DESC LIMIT :lim"), {"lim": limit}).all()
         return [{"name": r[0], "status": r[1],
-                 "created_at": r[2].isoformat() if r[2] else "", "fields": r[3]}
+                 "created_at": r[2].isoformat() if r[2] else "", "fields": r[3],
+                 "model": r[4] or "", "grounded": float(r[5]) if r[5] is not None else 0.0}
                 for r in rows]
     except Exception as e:
         log.warning("recent_documents 실패: %s", e)
         return []
+
+
+def doc_count() -> int:
+    if not enabled():
+        return 0
+    from sqlalchemy import text
+
+    try:
+        with _eng().connect() as c:
+            return c.execute(text("SELECT count(*) FROM documents")).scalar() or 0
+    except Exception:
+        return 0

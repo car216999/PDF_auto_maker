@@ -45,9 +45,19 @@ export function fileUrl(formId) {
 export async function fetchRecent(limit = 8) {
   try {
     const r = await fetch(`${BASE}/documents/recent?limit=${limit}`)
-    if (!r.ok) return { items: [], db: false }
+    if (!r.ok) return { items: [], count: 0, db: false }
     return await r.json()
   } catch {
-    return { items: [], db: false }
+    return { items: [], count: 0, db: false }
+  }
+}
+
+export async function fetchIndexStats() {
+  try {
+    const r = await fetch(`${BASE}/index/stats`)
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
   }
 }

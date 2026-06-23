@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { uploadForm, generateFields, downloadFilled, fileUrl, fetchRecent } from './api'
+import {
+  uploadForm, generateFields, downloadFilled, fileUrl, fetchRecent, fetchIndexStats,
+} from './api'
 
 const STEPS = ['양식 업로드', '컨셉 입력', '미리보기·다운로드']
 
@@ -11,7 +13,8 @@ const RECENT = [
 ]
 
 export default function App() {
-  const [view, setView] = useState('dashboard') // dashboard | create
+  const [view, setView] = useState('dashboard') // dashboard | create | manage
+  const [docCount, setDocCount] = useState(null)
   const [step, setStep] = useState(0)
   const [form, setForm] = useState(null)
   const [concept, setConcept] = useState('')
@@ -64,12 +67,18 @@ export default function App() {
 
   function goCreate() { reset(); setView('create') }
   function goDashboard() { reset(); setView('dashboard') }
+  function goManage() { reset(); setView('manage') }
+
+  useEffect(() => {
+    fetchRecent(1).then((r) => setDocCount(r.count ?? null))
+  }, [view]) // 화면 전환 시 배지 갱신
 
   const groundedCount = rows.filter((r) => r.grounded).length
 
   return (
     <div className="layout">
-      <Sidebar view={view} onDashboard={goDashboard} onCreate={goCreate} />
+      <Sidebar view={view} onDashboard={goDashboard} onCreate={goCreate}
+        onManage={goManage} docCount={docCount} />
 
       <div className="main-col">
         <Topbar />
@@ -77,7 +86,9 @@ export default function App() {
         <div className="content">
           {error && <div className="alert">⚠ {error}</div>}
 
-          {view === 'dashboard' && <Dashboard onCreate={goCreate} />}
+          {view === 'dashboard' && <Dashboard onCreate={goCreate} onManage={goManage} />}
+
+          {view === 'manage' && <DocManage onCreate={goCreate} />}
 
           {view === 'create' && (
             <div className="card-wrap">
@@ -120,7 +131,7 @@ function Brand() {
   )
 }
 
-function Sidebar({ view, onDashboard, onCreate }) {
+function Sidebar({ view, onDashboard, onCreate, onManage, docCount }) {
   return (
     <aside className="sidebar">
       <Brand />
@@ -133,8 +144,9 @@ function Sidebar({ view, onDashboard, onCreate }) {
           <span className="nav-ico">＋</span> 새 문서 작성
         </button>
         <div className="nav-group">관리</div>
-        <button className="nav-item" disabled>
-          <span className="nav-ico">🗂</span> 문서 관리 <span className="nav-badge">12</span>
+        <button className={`nav-item ${view === 'manage' ? 'on' : ''}`} onClick={onManage}>
+          <span className="nav-ico">🗂</span> 문서 관리
+          {docCount != null && docCount > 0 && <span className="nav-badge">{docCount}</span>}
         </button>
         <div className="nav-group">시스템</div>
         <button className="nav-item" disabled>
@@ -170,7 +182,7 @@ function fmtTime(iso) {
   return sameDay ? `오늘 ${hh}:${mm}` : `${d.getMonth() + 1}월 ${d.getDate()}일 ${hh}:${mm}`
 }
 
-function Dashboard({ onCreate }) {
+function Dashboard({ onCreate, onManage }) {
   const [items, setItems] = useState(RECENT) // 기본 샘플 → DB 있으면 교체
   useEffect(() => {
     fetchRecent().then((r) => {
@@ -196,7 +208,7 @@ function Dashboard({ onCreate }) {
             <p>AI가 PDF를 자동으로 작성합니다.</p>
           </div>
         </button>
-        <button className="dash-card" disabled>
+        <button className="dash-card" onClick={onManage}>
           <span className="dash-card-ico gray">🗂</span>
           <div>
             <b>문서 관리</b>
@@ -224,6 +236,70 @@ function Dashboard({ onCreate }) {
             </li>
           ))}
         </ul>
+      </section>
+    </div>
+  )
+}
+
+/* ---------- 문서 관리 ---------- */
+function DocManage({ onCreate }) {
+  const [docs, setDocs] = useState([])
+  const [stats, setStats] = useState(null)
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    fetchRecent(50).then((r) => { setDocs(r.items || []); setLoaded(true) })
+    fetchIndexStats().then(setStats)
+  }, [])
+  return (
+    <div className="dash">
+      <h1 className="dash-title">문서 관리</h1>
+      <p className="dash-sub">RAG 인덱스 현황과 생성 문서 이력을 관리해요.</p>
+
+      <section className="recent" style={{ marginBottom: 18 }}>
+        <h2>RAG 인덱스 현황</h2>
+        <div className="stat-grid">
+          <div className="stat"><b>{stats ? stats.chunks.toLocaleString() : '—'}</b><span>인덱싱된 청크</span></div>
+          <div className="stat"><b>{stats ? stats.knowledge_files : '—'}</b><span>지식 문서</span></div>
+          <div className="stat"><b>{stats ? stats.embed_model : '—'}</b><span>임베딩 모델</span></div>
+          <div className="stat"><b>{stats ? stats.vector_db : '—'}</b><span>벡터 DB</span></div>
+        </div>
+        {stats && <p className="hint" style={{ marginTop: 10 }}>검색 방식: {stats.retrieval}</p>}
+      </section>
+
+      <section className="recent">
+        <div className="row-between">
+          <h2>문서 이력 ({docs.length})</h2>
+          <a className="link" style={{ cursor: 'pointer' }} onClick={onCreate}>+ 새 문서 작성</a>
+        </div>
+        {loaded && docs.length === 0 ? (
+          <p className="hint" style={{ padding: '24px 0', textAlign: 'center' }}>
+            아직 생성한 문서가 없어요. <b>새 문서 작성</b>으로 시작하세요.
+          </p>
+        ) : (
+          <div className="doc-table-wrap">
+            <table className="doc-table">
+              <thead>
+                <tr><th>문서</th><th>필드</th><th>근거율</th><th>모델</th><th>상태</th><th>생성</th></tr>
+              </thead>
+              <tbody>
+                {docs.map((d, i) => (
+                  <tr key={i}>
+                    <td className="doc-name">📄 {d.name}</td>
+                    <td>{d.fields}개</td>
+                    <td>{Math.round((d.grounded || 0) * 100)}%</td>
+                    <td className="doc-model">{d.model}</td>
+                    <td>
+                      <span className={`status ${d.status === '완료' || d.status === 'done' ? 'done' : 'progress'}`}>
+                        {d.status}
+                      </span>
+                    </td>
+                    <td className="doc-date">{fmtTime(d.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   )
