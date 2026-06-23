@@ -29,6 +29,12 @@ def _clean(text: str) -> str:
     return text.rstrip(":：·").strip()
 
 
+def _is_heading(raw: str) -> bool:
+    """머리기호/번호로 시작하는 제목·소제목 (옆에 값을 채우면 안 됨)."""
+    raw = raw.strip()
+    return bool(re.match(r"^[■□●▪◦▶]|^\d+\s*[.)]|^[가-힣]\s*[.)]", raw))
+
+
 def _looks_like_label(text: str) -> bool:
     if not (2 <= len(text) <= _MAX_LABEL_LEN):
         return False
@@ -117,17 +123,17 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
         tfields, occupied = _table_fields(page, pno, len(fields))
         fields.extend(tfields)
 
-        # 폰트 크기 조회용 스팬 (제목 등 큰 글씨 제외)
-        spans = [(sp["bbox"], sp["size"])
+        # 폰트 메타(크기·굵기) — 제목/소제목 판별용 (flag 16 = bold)
+        spans = [(sp["bbox"], sp["size"], bool(sp["flags"] & 16))
                  for blk in page.get_text("dict")["blocks"]
                  for ln in blk.get("lines", [])
                  for sp in ln.get("spans", [])]
 
-        def font_size_at(x: float, y: float) -> float:
-            for bb, sz in spans:
+        def font_meta_at(x: float, y: float) -> tuple[float, bool]:
+            for bb, sz, bold in spans:
                 if bb[0] - 1 <= x <= bb[2] + 1 and bb[1] - 1 <= y <= bb[3] + 1:
-                    return sz
-            return 11.0
+                    return sz, bold
+            return 11.0, False
 
         # 라인별 그룹 + 라인 bbox
         line_words: dict[tuple, list] = {}
@@ -151,7 +157,8 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
                     cluster.append(cur)
                 else:
                     break
-            label = _clean(" ".join(w[4] for w in cluster))
+            raw_label = " ".join(w[4] for w in cluster)
+            label = _clean(raw_label)
             if not _looks_like_label(label) or len(cluster) > _MAX_LABEL_WORDS:
                 continue
 
@@ -170,17 +177,23 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
                 ln = min(cand, key=lambda l: abs(l[2] - y1))
                 bx0, bx1, by0, by1 = ln[0] + 3, ln[1] - 3, ln[2] - 16, ln[2] - 1
             else:
-                # 밑줄 없는 항목은 좌측 정렬 + 제목(큰 글씨)이 아니어야 함
-                if x0 > left_zone or font_size_at(x0 + 1, (y0 + y1) / 2) > 15:
+                if x0 > left_zone:
                     continue
+                size, bold = font_meta_at(x0 + 1, (y0 + y1) / 2)
+                if size >= 18:           # 큰 제목 → 통째로 제외
+                    continue
+                # 제목/소제목: 머리기호 / 굵은 글씨 / 큰 글씨 → 옆에는 채우지 않음
+                heading = _is_heading(raw_label) or bold or size >= 13
                 # 2순위: 제목 아래 빈 영역 → 섹션 (문단)
                 nt = next_text_top(x0, right, y1)
                 gap = (nt - y1) if nt is not None else _SECTION_MAX_H
                 if gap >= _SECTION_MIN_GAP:
                     h = min(gap - 6, _SECTION_MAX_H)
                     bx0, bx1, by0, by1 = x0 + 2, right, y1 + 4, y1 + 4 + h
+                elif heading:
+                    continue  # 제목인데 아래 빈 공간 없음 → 옆에 채우지 않고 건너뜀
                 else:
-                    # 3순위: 우측 빈 공간 → 인라인
+                    # 3순위: 우측 빈 공간 → 인라인 (제목이 아닌 경우만)
                     rest = [w for w in ws if w[0] > label_end + 1]
                     bx0 = label_end + 8
                     bx1 = (rest[0][0] - 4) if rest else right
