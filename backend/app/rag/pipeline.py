@@ -1,12 +1,14 @@
 """RAG 파이프라인 — 담당: 박은선.
 
-인덱싱(오프라인): 문서 → 정제 → 청킹 → 중복 제거 → 임베딩 → ChromaDB 저장.
-질의(온라인): 컨셉/라벨로 top-k 단일 검색하여 근거 청크 반환.
-(중장기: 하이브리드 검색 BM25+벡터 RRF + cross-encoder 리랭킹)
+벡터스토어: Qdrant(임베디드 로컬, path 모드 → 서버 불필요).
+임베딩: BGE-M3(1024d, 다국어) via Ollama.
 
-임베딩은 직접 계산해 컬렉션에 주입하므로 ChromaDB 임베딩함수 직렬화 이슈가 없다.
+인덱싱(오프라인): 문서 → 정제 → 청킹 → 중복 제거 → 임베딩 → Qdrant 저장.
+질의(온라인): 컨셉/라벨로 top-k 코사인 검색하여 근거 청크 반환.
+
+[로컬 ↔ 서버 전환] QdrantClient(path=...) → QdrantClient(url="http://...:6333") 한 줄.
+(중장기: BGE-M3 dense+sparse 하이브리드 검색 RRF + cross-encoder 리랭킹)
 """
-import hashlib
 from pathlib import Path
 
 from app.config import settings
@@ -25,10 +27,9 @@ class RAGPipeline:
         collection_name: str = "tooktak_knowledge",
     ):
         self._embedder = embedder
-        self.persist_dir = Path(persist_dir) if persist_dir else settings.chroma_dir
+        self.persist_dir = Path(persist_dir) if persist_dir else settings.qdrant_dir
         self.collection_name = collection_name
         self._client = None
-        self._collection = None
 
     # --- 지연 초기화 (생성만으로는 Ollama·디스크 작업 없음) ---
     @property
@@ -40,33 +41,22 @@ class RAGPipeline:
     @property
     def client(self):
         if self._client is None:
-            import chromadb
+            from qdrant_client import QdrantClient
 
             self.persist_dir.mkdir(parents=True, exist_ok=True)
-            self._client = chromadb.PersistentClient(
-                path=str(self.persist_dir),
-                settings=chromadb.config.Settings(anonymized_telemetry=False),
-            )
+            self._client = QdrantClient(path=str(self.persist_dir))
         return self._client
 
-    @property
-    def collection(self):
-        if self._collection is None:
-            self._collection = self.client.get_or_create_collection(
-                self.collection_name, metadata={"hnsw:space": "cosine"}
-            )
-        return self._collection
+    def _recreate(self, dim: int):
+        """컬렉션을 비우고 새로 만든다 (전체 재인덱싱). 코사인 거리."""
+        from qdrant_client import models
 
-    def _reset_collection(self):
-        """컬렉션을 비우고 새로 만든다 (전체 재인덱싱)."""
-        try:
+        if self.client.collection_exists(self.collection_name):
             self.client.delete_collection(self.collection_name)
-        except Exception:
-            pass
-        self._collection = self.client.get_or_create_collection(
-            self.collection_name, metadata={"hnsw:space": "cosine"}
+        self.client.create_collection(
+            self.collection_name,
+            vectors_config=models.VectorParams(size=dim, distance=models.Distance.COSINE),
         )
-        return self._collection
 
     # --- 인덱싱 ---
     def index(self, docs_dir: Path | str | None = None) -> int:
@@ -74,64 +64,65 @@ class RAGPipeline:
         root = Path(docs_dir) if docs_dir else settings.knowledge_dir
         docs: list[tuple[str, str]] = []
         for pattern in _KNOWLEDGE_GLOBS:
-            for path in sorted(root.glob(pattern)):
+            for path in sorted(root.rglob(pattern)):  # 하위 폴더까지 재귀
                 docs.append((path.read_text(encoding="utf-8"), path.name))
         return self.index_documents(docs)
 
     def index_documents(self, docs: list[tuple[str, str]]) -> int:
         """(텍스트, 출처) 목록을 정제·청킹·중복제거 후 저장."""
-        ids: list[str] = []
+        from qdrant_client import models
+
         texts: list[str] = []
         sources: list[str] = []
         seen: set[str] = set()
 
         for raw, source in docs:
-            for i, ch in enumerate(
-                chunk_text(clean_text(raw), settings.chunk_size, settings.chunk_overlap)
+            for ch in chunk_text(
+                clean_text(raw), settings.chunk_size, settings.chunk_overlap
             ):
                 if ch in seen:  # 중복 청크 제거
                     continue
                 seen.add(ch)
-                ids.append(hashlib.sha1(f"{source}:{i}:{ch}".encode()).hexdigest()[:16])
                 texts.append(ch)
                 sources.append(source)
 
-        coll = self._reset_collection()
         if not texts:
+            if self.client.collection_exists(self.collection_name):
+                self.client.delete_collection(self.collection_name)
             return 0
+
         embeddings = self.embedder.embed(texts)
-        coll.add(
-            ids=ids,
-            documents=texts,
-            embeddings=embeddings,
-            metadatas=[{"source": s} for s in sources],
+        self._recreate(len(embeddings[0]))
+        self.client.upsert(
+            self.collection_name,
+            points=[
+                models.PointStruct(id=i, vector=emb, payload={"text": t, "source": s})
+                for i, (t, s, emb) in enumerate(zip(texts, sources, embeddings))
+            ],
         )
         return len(texts)
 
     # --- 검색 ---
     def retrieve(self, query: str, top_k: int | None = None) -> RetrievalResult:
         k = top_k or settings.top_k
-        coll = self.collection
-        count = coll.count()
-        if count == 0:  # 비어있으면 임베딩 호출 없이 즉시 반환
+        # 비어있으면 임베딩 호출 없이 즉시 반환 (오프라인 안전)
+        if not self.client.collection_exists(self.collection_name):
+            return RetrievalResult(query=query, chunks=[])
+        if self.client.count(self.collection_name).count == 0:
             return RetrievalResult(query=query, chunks=[])
 
         emb = self.embedder.embed([query])[0]
-        res = coll.query(
-            query_embeddings=[emb],
-            n_results=min(k, count),
-            include=["documents", "metadatas", "distances"],
+        res = self.client.query_points(
+            self.collection_name, query=emb, limit=k, with_payload=True
         )
         chunks: list[RetrievedChunk] = []
-        for doc, meta, dist in zip(
-            res["documents"][0], res["metadatas"][0], res["distances"][0]
-        ):
-            meta = meta or {}
+        for p in res.points:
+            meta = p.payload or {}
             chunks.append(
                 RetrievedChunk(
-                    text=doc,
+                    text=meta.get("text", ""),
                     source=meta.get("source", "unknown"),
-                    score=max(0.0, 1.0 - float(dist)),  # 코사인 거리 → 유사도
+                    score=max(0.0, float(p.score)),  # 코사인 유사도
                     metadata=meta,
                 )
             )

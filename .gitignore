@@ -13,6 +13,7 @@ dist/
 data/uploads/*
 data/outputs/*
 data/chroma/*
+data/qdrant/*
 data/forms/*.pdf
 !**/.gitkeep
 
@@ -38,3 +39,8 @@ backend/_*.png
 # 임시 렌더링 환경 (mermaid/playwright)
 .mmd-tmp/
 .shots-tmp/
+
+# 외부 다운로드 자료·추출 텍스트 (외부 출처, 로컬 보관)
+/대한조선_강의자료/
+/data/knowledge/대한조선강의자료/
+/data/forms/한국선급/

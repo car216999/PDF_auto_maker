@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # --- Ollama (완전 로컬) ---
     ollama_base_url: str = "http://localhost:11434"
     llm_model: str = "qwen3:8b"
-    embed_model: str = "nomic-embed-text"
+    embed_model: str = "bge-m3"  # 다국어 임베딩(1024d) — 한국어 강함
 
     # --- RAG ---
     top_k: int = 4
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     chunk_overlap: int = 120
 
     # --- 데이터 경로 ---
-    chroma_dir: Path = PROJECT_ROOT / "data" / "chroma"
+    qdrant_dir: Path = PROJECT_ROOT / "data" / "qdrant"  # Qdrant 임베디드 로컬
     forms_dir: Path = PROJECT_ROOT / "data" / "forms"
     knowledge_dir: Path = PROJECT_ROOT / "data" / "knowledge"
     upload_dir: Path = PROJECT_ROOT / "data" / "uploads"
