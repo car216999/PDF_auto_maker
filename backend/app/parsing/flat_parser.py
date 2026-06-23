@@ -68,9 +68,18 @@ def _table_fields(page: fitz.Page, pno: int, start: int):
     fields: list[FormField] = []
     occupied: list[tuple] = []
     try:
-        tabs = page.find_tables()
+        # 선(테두리) 기반 우선 — 선이 있는 양식에 강함. 없으면 기본(텍스트) 전략
+        tabs = page.find_tables(strategy="lines")
+        if not getattr(tabs, "tables", []):
+            tabs = page.find_tables()
     except Exception:
         return fields, occupied
+
+    words = page.get_text("words")
+
+    def label_ok(label: str) -> bool:
+        return (2 <= len(label) <= 40
+                and not re.fullmatch(r"[\d\s.,\-/:()]+", label))
 
     n = start
     for tab in getattr(tabs, "tables", []):
@@ -81,27 +90,47 @@ def _table_fields(page: fitz.Page, pno: int, start: int):
         for ri, row in enumerate(tab.rows):
             cells = row.cells
             texts = data[ri] if ri < len(data) else []
-            for c in cells:
-                if c:
-                    occupied.append(tuple(c))
-            ci = 0
-            while ci < len(cells) - 1:
-                bb = cells[ci]
-                tx = (texts[ci] or "").strip() if ci < len(texts) else ""
-                nb = cells[ci + 1]
-                ntx = (texts[ci + 1] or "").strip() if ci + 1 < len(texts) else ""
-                if bb and tx and nb and not ntx:  # 라벨 칸 + 빈 값 칸
+            real = [(cells[ci], (texts[ci] or "").strip() if ci < len(texts) else "")
+                    for ci in range(len(cells)) if cells[ci]]
+            for c, _ in real:
+                occupied.append(tuple(c))
+
+            used = set()
+            # 패턴 A: 한 칸 안의 '라벨 : ___' — 콜론 뒤 빈 공간을 값 슬롯으로
+            for idx, (cell, tx) in enumerate(real):
+                if not tx or (":" not in tx and "：" not in tx):
+                    continue
+                cx0, cy0, cx1, cy1 = cell
+                inw = [w for w in words
+                       if cx0 - 1 <= w[0] and w[2] <= cx1 + 1
+                       and cy0 - 1 <= w[1] and w[3] <= cy1 + 1]
+                colon_x = max((w[2] for w in inw if ":" in w[4] or "：" in w[4]),
+                              default=max((w[2] for w in inw), default=cx0))
+                if cx1 - colon_x < 40:
+                    continue
+                label = _clean(re.split(r"[:：]", tx)[0])
+                if label_ok(label):
+                    fields.append(FormField(
+                        name=f"tbl_{pno}_{n}", label=label, page=pno,
+                        bbox=BBox(x0=colon_x + 4, y0=cy0 + 2, x1=cx1 - 4, y1=cy1 - 2)))
+                    n += 1
+                    used.add(idx)
+
+            # 패턴 B: '라벨 칸 + 옆 빈 값 칸' (None 건너뛴 다음 칸)
+            j = 0
+            while j < len(real) - 1:
+                (bb, tx), (nb, ntx) = real[j], real[j + 1]
+                if j not in used and tx and not ntx and ":" not in tx and "：" not in tx:
                     label = _clean(tx)
                     x0, y0, x1, y1 = nb
-                    if _looks_like_label(label) and x1 - x0 >= 40:
+                    if label_ok(label) and x1 - x0 >= 40:
                         fields.append(FormField(
                             name=f"tbl_{pno}_{n}", label=label, page=pno,
-                            bbox=BBox(x0=x0 + 4, y0=y0 + 2, x1=x1 - 4, y1=y1 - 2),
-                        ))
+                            bbox=BBox(x0=x0 + 4, y0=y0 + 2, x1=x1 - 4, y1=y1 - 2)))
                         n += 1
-                    ci += 2
+                    j += 2
                 else:
-                    ci += 1
+                    j += 1
     return fields, occupied
 
 
