@@ -61,3 +61,13 @@ export async function fetchIndexStats() {
     return null
   }
 }
+
+export async function fetchSettings() {
+  try {
+    const r = await fetch(`${BASE}/settings`)
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
+  }
+}

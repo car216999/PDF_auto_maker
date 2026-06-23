@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
-  uploadForm, generateFields, downloadFilled, fileUrl, fetchRecent, fetchIndexStats,
+  uploadForm, generateFields, downloadFilled, fileUrl,
+  fetchRecent, fetchIndexStats, fetchSettings,
 } from './api'
 
 const STEPS = ['양식 업로드', '컨셉 입력', '미리보기·다운로드']
@@ -68,6 +69,7 @@ export default function App() {
   function goCreate() { reset(); setView('create') }
   function goDashboard() { reset(); setView('dashboard') }
   function goManage() { reset(); setView('manage') }
+  function goSettings() { reset(); setView('settings') }
 
   useEffect(() => {
     fetchRecent(1).then((r) => setDocCount(r.count ?? null))
@@ -78,7 +80,7 @@ export default function App() {
   return (
     <div className="layout">
       <Sidebar view={view} onDashboard={goDashboard} onCreate={goCreate}
-        onManage={goManage} docCount={docCount} />
+        onManage={goManage} onSettings={goSettings} docCount={docCount} />
 
       <div className="main-col">
         <Topbar />
@@ -89,6 +91,8 @@ export default function App() {
           {view === 'dashboard' && <Dashboard onCreate={goCreate} onManage={goManage} />}
 
           {view === 'manage' && <DocManage onCreate={goCreate} />}
+
+          {view === 'settings' && <Settings />}
 
           {view === 'create' && (
             <div className="card-wrap">
@@ -131,7 +135,7 @@ function Brand() {
   )
 }
 
-function Sidebar({ view, onDashboard, onCreate, onManage, docCount }) {
+function Sidebar({ view, onDashboard, onCreate, onManage, onSettings, docCount }) {
   return (
     <aside className="sidebar">
       <Brand />
@@ -149,7 +153,7 @@ function Sidebar({ view, onDashboard, onCreate, onManage, docCount }) {
           {docCount != null && docCount > 0 && <span className="nav-badge">{docCount}</span>}
         </button>
         <div className="nav-group">시스템</div>
-        <button className="nav-item" disabled>
+        <button className={`nav-item ${view === 'settings' ? 'on' : ''}`} onClick={onSettings}>
           <span className="nav-ico">⚙</span> 설정
         </button>
       </nav>
@@ -300,6 +304,57 @@ function DocManage({ onCreate }) {
             </table>
           </div>
         )}
+      </section>
+    </div>
+  )
+}
+
+/* ---------- 설정 ---------- */
+function Settings() {
+  const [cfg, setCfg] = useState(null)
+  useEffect(() => { fetchSettings().then(setCfg) }, [])
+  const row = (label, val) => (
+    <div className="set-row"><span>{label}</span><b>{val ?? '—'}</b></div>
+  )
+  return (
+    <div className="dash">
+      <h1 className="dash-title">설정</h1>
+      <p className="dash-sub">시스템 구성과 연결 상태 — 온프레미스 · 읽기 전용</p>
+
+      <section className="recent" style={{ marginBottom: 18 }}>
+        <h2>연결 상태</h2>
+        <ul className="conn-list">
+          {cfg ? Object.entries(cfg.connections).map(([k, v]) => (
+            <li key={k} className="conn-row">
+              <span className={`conn-dot ${v ? 'on' : 'off'}`} />
+              <span className="conn-name">{k}</span>
+              <span className={`status ${v ? 'done' : 'progress'}`}>{v ? '연결됨' : '끊김'}</span>
+            </li>
+          )) : <li className="hint">확인 중…</li>}
+        </ul>
+      </section>
+
+      <section className="recent" style={{ marginBottom: 18 }}>
+        <h2>AI 모델 &amp; 검색</h2>
+        <div className="set-grid">
+          {row('생성 LLM', cfg?.llm_model)}
+          {row('임베딩 모델', cfg?.embed_model)}
+          {row('벡터 DB', cfg?.vector_db)}
+          {row('검색 방식', cfg?.retrieval)}
+          {row('top-k', cfg?.top_k)}
+          {row('청크 크기 / 오버랩', cfg ? `${cfg.chunk_size} / ${cfg.chunk_overlap}` : null)}
+          {row('인덱싱된 청크', cfg?.chunks)}
+          {row('Ollama', cfg?.ollama_url)}
+          {row('담당자', cfg?.user)}
+        </div>
+      </section>
+
+      <section className="recent set-secure">
+        <span className="set-lock">🔒</span>
+        <div>
+          <b>완전 로컬 · 외부 전송 0건</b>
+          <p>LLM · 임베딩 · 검색 · 주입 전부 사내(로컬)에서 처리합니다. 외부 AI API 호출이 없어요.</p>
+        </div>
       </section>
     </div>
   )

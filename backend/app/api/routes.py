@@ -23,6 +23,45 @@ async def recent_documents(limit: int = 8) -> dict:
     }
 
 
+@router.get("/settings")
+async def get_settings() -> dict:
+    """설정 페이지 — 시스템 구성·연결 상태(읽기 전용, 온프레미스)."""
+    from app.services.orchestrator import orchestrator
+
+    chunks = 0
+    try:
+        rag = orchestrator.rag
+        if rag.client.collection_exists(rag.collection_name):
+            chunks = rag.client.count(rag.collection_name).count
+    except Exception:
+        pass
+    ollama_ok = False
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(settings.ollama_base_url + "/api/tags", timeout=3) as r:
+            ollama_ok = r.status == 200
+    except Exception:
+        pass
+    return {
+        "llm_model": settings.llm_model,
+        "embed_model": settings.embed_model,
+        "vector_db": "Qdrant (임베디드 로컬)",
+        "retrieval": "BM25 + BGE-M3 하이브리드(RRF) → cross-encoder 리랭킹",
+        "top_k": settings.top_k,
+        "chunk_size": settings.chunk_size,
+        "chunk_overlap": settings.chunk_overlap,
+        "ollama_url": settings.ollama_base_url,
+        "user": settings.default_user_name,
+        "chunks": chunks,
+        "connections": {
+            "Ollama (LLM·임베딩)": ollama_ok,
+            "Qdrant (벡터DB)": chunks > 0,
+            "PostgreSQL (이력)": db.ping(),
+        },
+    }
+
+
 @router.get("/index/stats")
 async def index_stats() -> dict:
     """RAG 인덱스 현황 — 청크 수·지식 문서 수·임베딩/벡터DB."""
