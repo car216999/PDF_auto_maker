@@ -31,12 +31,29 @@ def _looks_like_label(text: str) -> bool:
     return True
 
 
+def _horizontal_lines(page: fitz.Page) -> list[tuple[float, float, float]]:
+    """페이지의 수평선(밑줄) 목록 → (x0, x1, y)."""
+    out: list[tuple[float, float, float]] = []
+    for dr in page.get_drawings():
+        for it in dr["items"]:
+            if it[0] == "l":  # 선분
+                p1, p2 = it[1], it[2]
+                if abs(p1.y - p2.y) < 1.5 and abs(p2.x - p1.x) >= _MIN_SLOT_W:
+                    out.append((min(p1.x, p2.x), max(p1.x, p2.x), (p1.y + p2.y) / 2))
+            elif it[0] == "re":  # 얇은 사각형도 밑줄로 취급
+                r = it[1]
+                if r.height < 2 and r.width >= _MIN_SLOT_W:
+                    out.append((r.x0, r.x1, (r.y0 + r.y1) / 2))
+    return out
+
+
 def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
     fields: list[FormField] = []
     seen: set[str] = set()
 
     for pno, page in enumerate(doc):
         right = page.rect.width - _RIGHT_MARGIN
+        hlines = _horizontal_lines(page)
         words = page.get_text("words")  # (x0,y0,x1,y1, word, block, line, wno)
         lines: dict[tuple, list] = {}
         for w in words:
@@ -59,14 +76,24 @@ def detect_flat_fields(doc: fitz.Document) -> list[FormField]:
                 continue
 
             label_end = cluster[-1][2]
-            rest = [w for w in ws if w[0] > label_end + 1]
-            slot_left = label_end + 8
-            slot_right = (rest[0][0] - 4) if rest else right
-            if slot_right - slot_left < _MIN_SLOT_W:  # 빈칸 부족
-                continue
-
             y0 = min(w[1] for w in cluster)
             y1 = max(w[3] for w in cluster)
+
+            # 1순위: 라벨 우측의 밑줄에 정렬 (밑줄 위에 값을 얹음)
+            cand = [ln for ln in hlines
+                    if ln[1] > label_end + 10 and y0 - 4 <= ln[2] <= y1 + 12]
+            if cand:
+                ln = min(cand, key=lambda l: abs(l[2] - y1))  # 베이스라인에 가장 가까운 선
+                slot_left = ln[0] + 3
+                slot_right = ln[1] - 3
+                y0, y1 = ln[2] - 16, ln[2] - 1     # 선 바로 위
+            else:
+                # 2순위: 라벨 우측 빈 공간(밑줄 없음)
+                rest = [w for w in ws if w[0] > label_end + 1]
+                slot_left = label_end + 8
+                slot_right = (rest[0][0] - 4) if rest else right
+            if slot_right - slot_left < _MIN_SLOT_W:  # 빈칸 부족
+                continue
             key = f"{pno}:{round(y0)}:{label}"
             if key in seen:
                 continue
