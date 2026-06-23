@@ -290,7 +290,6 @@ function GeneratingOverlay({ filename, fields }) {
           <li key={idx} className={idx === i ? 'on' : idx < i ? 'done' : ''} />
         ))}
       </ol>
-      <div className="gen-bar"><i /></div>
       <p className="gen-foot">{filename} · 필드 {fields}개 채우는 중 — 로컬 LLM, 보통 20~30초</p>
     </div>
   )

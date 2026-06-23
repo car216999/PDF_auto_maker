@@ -340,17 +340,4 @@ body {
 }
 .gen-track li.on { background: var(--blue); }
 .gen-track li.done { background: var(--green); }
-.gen-bar {
-  width: 100%; max-width: 320px; height: 6px;
-  background: var(--line); border-radius: 6px; overflow: hidden;
-}
-.gen-bar i {
-  display: block; height: 100%; width: 40%;
-  background: linear-gradient(90deg, var(--blue), #6fa0f5);
-  border-radius: 6px; animation: gen-slide 1.5s ease-in-out infinite;
-}
-@keyframes gen-slide {
-  0% { margin-left: -42%; }
-  100% { margin-left: 100%; }
-}
-.gen-foot { color: var(--muted); font-size: 12px; margin: 2px 0 0; }
+.gen-foot { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
